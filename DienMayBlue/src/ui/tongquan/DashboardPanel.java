@@ -355,15 +355,4 @@ public class DashBoardPanel extends BaseScreenPanel {
         }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Dashboard Tổng Quan");
-            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            f.setContentPane(new DashBoardPanel());
-            f.setMinimumSize(new Dimension(1000, 680));
-            f.setSize(1260, 780);
-            f.setLocationRelativeTo(null);
-            f.setVisible(true);
-        });
-    }
 }
