@@ -7,6 +7,6 @@
 	</classpathentry>
 	<classpathentry kind="src" path="DienMayBlue/src"/>
 	<classpathentry kind="src" path="He_Thong_Dien_May_Blue/src"/>
-	<classpathentry kind="lib" path="E:/baive/sqljdbc_13.6.0.0_enu/sqljdbc_13.6/enu/jars/mssql-jdbc-13.6.0.jre11.jar"/>
+	<classpathentry kind="lib" path="D:/PTUD/mssql-jdbc-13.6.0.jre11.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
