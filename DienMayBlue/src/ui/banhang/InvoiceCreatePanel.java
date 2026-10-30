@@ -15,12 +15,10 @@ import java.util.Locale;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import dichvuService.SalesService;
+import service.SalesService;
 import database.Db;
 import util.Formats;
 import util.SessionManager;
-import tienichUtil.SalesDraftBridge;
-import tienichUtil.UiText;
 import ui.dungchung.*;
 
 /** UC019 - Lập hóa đơn bán hàng. */
