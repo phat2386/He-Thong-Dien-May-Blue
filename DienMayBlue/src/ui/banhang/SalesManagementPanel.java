@@ -7,7 +7,6 @@ import javax.swing.table.DefaultTableModel;
 
 import database.Db;
 import util.Formats;
-import tienichUtil.UiText;
 import ui.dungchung.*;
 import ui.chinh.MainFrame;
 
