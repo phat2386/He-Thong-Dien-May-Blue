@@ -611,7 +611,8 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         line.total = gross.subtract(line.discount).max(BigDecimal.ZERO);
     }
 
-    // Giảm giá của một dòng = mức lớn nhất giữa khuyến mãi đang chạy và ưu đãi hạng thành viên (không cộng dồn), tối đa bằng tiền hàng của dòng.
+    // Giảm giá của một dòng = mức lớn nhất giữa khuyến mãi đang chạy và ưu đãi hạng thành viên
+    // (không cộng dồn), tối đa bằng tiền hàng của dòng.
     private BigDecimal bestDiscount(String productId, int categoryId, BigDecimal gross, int qty) throws Exception {
         BigDecimal bestPromotion = BigDecimal.ZERO;
         for (Map<String,Object> r : Db.query(
