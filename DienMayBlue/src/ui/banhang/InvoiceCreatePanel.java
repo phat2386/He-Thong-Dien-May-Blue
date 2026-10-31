@@ -611,6 +611,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         line.total = gross.subtract(line.discount).max(BigDecimal.ZERO);
     }
 
+    // Giảm giá của một dòng = mức lớn nhất giữa khuyến mãi đang chạy và ưu đãi hạng thành viên (không cộng dồn), tối đa bằng tiền hàng của dòng.
     private BigDecimal bestDiscount(String productId, int categoryId, BigDecimal gross, int qty) throws Exception {
         BigDecimal bestPromotion = BigDecimal.ZERO;
         for (Map<String,Object> r : Db.query(
@@ -655,13 +656,11 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         return total;
     }
 
+    // Cập nhật Tạm tính, Giảm giá, Tổng cộng từ giỏ hàng và làm mới phần thanh toán.
     private void updateTotals() {
-        BigDecimal subtotal = BigDecimal.ZERO, discount = BigDecimal.ZERO, total = BigDecimal.ZERO;
-        for (Line l : lines) {
-            subtotal = subtotal.add(l.unitPrice.multiply(BigDecimal.valueOf(l.qty)));
-            discount = discount.add(l.discount);
-            total = total.add(l.total);
-        }
+        BigDecimal subtotal = currentSubtotal();
+        BigDecimal discount = currentDiscount();
+        BigDecimal total = currentTotal();
         lblSubtotal.setText(Formats.money(subtotal));
         lblDiscount.setText(discount.signum() == 0 ? "0đ" : "-" + Formats.money(discount));
         lblDiscount.setForeground(new Color(22, 163, 74));
