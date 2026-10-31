@@ -13,6 +13,9 @@ import ui.chinh.MainFrame;
 /** UC017 - Tổng quan quản lý bán hàng. */
 public class SalesManagementPanel extends BaseScreenPanel {
     private static final long serialVersionUID = 1L;
+        
+    // Các trạng thái hóa đơn được tính vào doanh thu và thống kê bán hàng.
+    private static final String COUNTED_STATUSES = "('PAID','PARTIAL_REFUND','REFUNDED')";
 
     private final JLabel lblRevenue = new JLabel("0đ");
     private final JLabel lblInvoices = new JLabel("0");
@@ -122,12 +125,12 @@ public class SalesManagementPanel extends BaseScreenPanel {
                   + "LEFT JOIN (SELECT invoice_id,SUM(refund_amount) refunded FROM return_requests "
                   + "WHERE status='COMPLETED' GROUP BY invoice_id) r ON r.invoice_id=i.invoice_id "
                   + "WHERE CAST(i.created_at AS DATE)=CAST(GETDATE() AS DATE) "
-                  + "AND i.status IN ('PAID','PARTIAL_REFUND','REFUNDED')");
+                  + "AND i.status IN " + COUNTED_STATUSES);
 
             Object invoiceCount = service.scalar(
                     "SELECT COUNT(*) FROM invoices "
                   + "WHERE CAST(created_at AS DATE)=CAST(GETDATE() AS DATE) "
-                  + "AND status IN ('PAID','PARTIAL_REFUND','REFUNDED')");
+                  + "AND status IN " + COUNTED_STATUSES);
 
             Object deliveryCount = service.scalar(
                     "SELECT COUNT(*) FROM deliveries WHERE status='PREPARING'");
@@ -150,7 +153,7 @@ public class SalesManagementPanel extends BaseScreenPanel {
                   + "LEFT JOIN customers c ON c.customer_id=i.customer_id "
                   + "LEFT JOIN (SELECT invoice_id,SUM(refund_amount) refunded FROM return_requests "
                   + "WHERE status='COMPLETED' GROUP BY invoice_id) rr ON rr.invoice_id=i.invoice_id "
-                  + "WHERE i.status IN ('PAID','PARTIAL_REFUND','REFUNDED') "
+                  + "WHERE i.status IN " + COUNTED_STATUSES + " "
                   + "ORDER BY i.created_at DESC")) {
                 recentModel.addRow(new Object[]{
                         r.get("invoice_id"),
