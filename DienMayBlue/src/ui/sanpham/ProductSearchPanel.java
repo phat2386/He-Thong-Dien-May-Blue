@@ -16,14 +16,14 @@ public class ProductSearchPanel extends BaseScreenPanel {
     private final ProductService service = new ProductService();
     private final MainFrame mainFrame;
     private final JTextField txtSearch = new JTextField();
-    private final JPanel categoryBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-    private final JPanel productGrid = new JPanel(new GridLayout(0, 2, 16, 16));
-    private final JScrollPane productScroll = new JScrollPane(productGrid);
+    private final JPanel pnlCategoryBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+    private final JPanel pnlProductGrid = new JPanel(new GridLayout(0, 2, 16, 16));
+    private final JScrollPane scrProduct = new JScrollPane(pnlProductGrid);
     private final JButton btnCheckout = UIFactory.primaryButton("Thanh toán");
     private final JButton btnAddToDraft = UIFactory.secondaryButton("Giỏ hàng");
     private final JButton btnDraft = UIFactory.primaryButton("Đơn tạm  0");
     private Integer selectedCategoryId = null;
-    private JToggleButton selectedCategoryButton;
+    private JToggleButton tglSelectedCategory;
     private String selectedProductId;
     private String selectedProductName;
     private Number selectedProductPrice;
@@ -39,22 +39,22 @@ public class ProductSearchPanel extends BaseScreenPanel {
         actions.add(btnAddToDraft);
         actions.add(btnDraft);
         body.setLayout(new BorderLayout(0, 15));
-        JPanel filters = new JPanel();
-        filters.setOpaque(false);
-        filters.setLayout(new BoxLayout(filters, BoxLayout.Y_AXIS));
-        filters.add(buildSearchBox());
-        filters.add(Box.createVerticalStrut(15));
-        categoryBar.setOpaque(false);
-        filters.add(categoryBar);
-        body.add(filters, BorderLayout.NORTH);
-        productGrid.setOpaque(false);
-        productGrid.setBorder(new EmptyBorder(0, 0, 8, 8));
-        productScroll.setBorder(null);
-        productScroll.setOpaque(false);
-        productScroll.getViewport().setOpaque(false);
-        productScroll.getVerticalScrollBar().setUnitIncrement(18);
-        productScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        body.add(productScroll, BorderLayout.CENTER);
+        JPanel pnlFilters = new JPanel();
+        pnlFilters.setOpaque(false);
+        pnlFilters.setLayout(new BoxLayout(pnlFilters, BoxLayout.Y_AXIS));
+        pnlFilters.add(buildSearchBox());
+        pnlFilters.add(Box.createVerticalStrut(15));
+        pnlCategoryBar.setOpaque(false);
+        pnlFilters.add(pnlCategoryBar);
+        body.add(pnlFilters, BorderLayout.NORTH);
+        pnlProductGrid.setOpaque(false);
+        pnlProductGrid.setBorder(new EmptyBorder(0, 0, 8, 8));
+        scrProduct.setBorder(null);
+        scrProduct.setOpaque(false);
+        scrProduct.getViewport().setOpaque(false);
+        scrProduct.getVerticalScrollBar().setUnitIncrement(18);
+        scrProduct.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        body.add(scrProduct, BorderLayout.CENTER);
         btnAddToDraft.addActionListener(e -> addSelectedToDraft());
         btnCheckout.addActionListener(e -> checkoutSelectedProduct());
         btnDraft.addActionListener(e -> showDraftDialog());
@@ -69,73 +69,73 @@ public class ProductSearchPanel extends BaseScreenPanel {
         wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         wrap.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UIConstants.BORDER), new EmptyBorder(0, 11, 0, 11)));
-        JLabel icon = new JLabel("⌕");
-        icon.setFont(UIConstants.font(Font.PLAIN, 22));
-        icon.setForeground(UIConstants.MUTED);
+        JLabel lblSearchIcon = new JLabel("⌕");
+        lblSearchIcon.setFont(UIConstants.font(Font.PLAIN, 22));
+        lblSearchIcon.setForeground(UIConstants.MUTED);
         txtSearch.setBorder(null);
         txtSearch.setOpaque(false);
         txtSearch.setFont(UIConstants.font(Font.PLAIN, 12));
         txtSearch.setForeground(UIConstants.TEXT);
         txtSearch.setToolTipText("Nhập tên sản phẩm, mã SP, mã vạch hoặc danh mục để tìm kiếm");
         txtSearch.putClientProperty("JTextField.placeholderText", "Nhập tên sản phẩm, mã SP, danh mục để tìm kiếm...");
-        wrap.add(icon, BorderLayout.WEST);
+        wrap.add(lblSearchIcon, BorderLayout.WEST);
         wrap.add(txtSearch, BorderLayout.CENTER);
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.add(wrap, BorderLayout.CENTER);
-        return row;
+        JPanel pnlRow = new JPanel(new BorderLayout());
+        pnlRow.setOpaque(false);
+        pnlRow.add(wrap, BorderLayout.CENTER);
+        return pnlRow;
     }
     private void loadCategories() {
-        categoryBar.removeAll();
+        pnlCategoryBar.removeAll();
         ButtonGroup group = new ButtonGroup();
-        JToggleButton all = categoryChip("Tất cả", null);
-        group.add(all);
-        categoryBar.add(all);
-        all.setSelected(true);
-        styleChip(all, true, false);
-        selectedCategoryButton = all;
+        JToggleButton tglAll = categoryChip("Tất cả", null);
+        group.add(tglAll);
+        pnlCategoryBar.add(tglAll);
+        tglAll.setSelected(true);
+        styleChip(tglAll, true, false);
+        tglSelectedCategory = tglAll;
         try {
             for (Map<String, Object> r : service.query(
                     "SELECT category_id,category_name FROM categories WHERE active=1 ORDER BY category_name")) {
                 Integer id = ((Number) r.get("category_id")).intValue();
-                JToggleButton b = categoryChip(String.valueOf(r.get("category_name")), id);
-                group.add(b);
-                categoryBar.add(b);
+                JToggleButton tglCategory = categoryChip(String.valueOf(r.get("category_name")), id);
+                group.add(tglCategory);
+                pnlCategoryBar.add(tglCategory);
             }
         } catch (Exception ex) {
             showError(ex);
         }
-        categoryBar.revalidate();
-        categoryBar.repaint();
+        pnlCategoryBar.revalidate();
+        pnlCategoryBar.repaint();
     }
     private JToggleButton categoryChip(String text, Integer id) {
-        final JToggleButton b = new JToggleButton(text);
-        b.setFont(UIConstants.font(Font.BOLD, 11));
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setUI(new javax.swing.plaf.basic.BasicToggleButtonUI());
-        b.setRolloverEnabled(false);
-        b.setContentAreaFilled(true);
-        b.setBorderPainted(true);
-        b.setBorder(new EmptyBorder(8, 13, 8, 13));
-        b.setOpaque(true);
-        styleChip(b, false, false);
-        b.addActionListener(e -> {
-            if (selectedCategoryButton != null) styleChip(selectedCategoryButton, false, false);
-            selectedCategoryButton = b;
+        final JToggleButton tglChip = new JToggleButton(text);
+        tglChip.setFont(UIConstants.font(Font.BOLD, 11));
+        tglChip.setFocusPainted(false);
+        tglChip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        tglChip.setUI(new javax.swing.plaf.basic.BasicToggleButtonUI());
+        tglChip.setRolloverEnabled(false);
+        tglChip.setContentAreaFilled(true);
+        tglChip.setBorderPainted(true);
+        tglChip.setBorder(new EmptyBorder(8, 13, 8, 13));
+        tglChip.setOpaque(true);
+        styleChip(tglChip, false, false);
+        tglChip.addActionListener(e -> {
+            if (tglSelectedCategory != null) styleChip(tglSelectedCategory, false, false);
+            tglSelectedCategory = tglChip;
             selectedCategoryId = id;
-            styleChip(b, true, false);
+            styleChip(tglChip, true, false);
             refreshData();
         });
-        b.addMouseListener(new MouseAdapter() {
+        tglChip.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent e) {
-                if (b != selectedCategoryButton) styleChip(b, false, true);
+                if (tglChip != tglSelectedCategory) styleChip(tglChip, false, true);
             }
             @Override public void mouseExited(MouseEvent e) {
-                if (b != selectedCategoryButton) styleChip(b, false, false);
+                if (tglChip != tglSelectedCategory) styleChip(tglChip, false, false);
             }
         });
-        return b;
+        return tglChip;
     }
     private void styleChip(AbstractButton b, boolean selected, boolean hovered) {
         if (selected || hovered) {
@@ -162,12 +162,12 @@ public class ProductSearchPanel extends BaseScreenPanel {
                     (selectedCategoryId == null ? "" : "AND p.category_id=? ") + "ORDER BY p.product_name";
             List<Map<String, Object>> rows = selectedCategoryId == null ? service.query(sql, kw, kw, kw, kw)
                     : service.query(sql, kw, kw, kw, kw, selectedCategoryId);
-            productGrid.removeAll();
-            for (Map<String, Object> r : rows) productGrid.add(productCard(r));
+            pnlProductGrid.removeAll();
+            for (Map<String, Object> r : rows) pnlProductGrid.add(productCard(r));
             subtitleLabel.setText(rows.size() + " sản phẩm trong danh mục");
-            productGrid.revalidate();
-            productGrid.repaint();
-            SwingUtilities.invokeLater(() -> productScroll.getVerticalScrollBar().setValue(0));
+            pnlProductGrid.revalidate();
+            pnlProductGrid.repaint();
+            SwingUtilities.invokeLater(() -> scrProduct.getVerticalScrollBar().setValue(0));
         } catch (Exception ex) {
             showError(ex);
         }
@@ -185,37 +185,37 @@ public class ProductSearchPanel extends BaseScreenPanel {
         card.setBorderColor(UIConstants.BORDER);
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.setToolTipText("Chọn sản phẩm để thêm vào giỏ hàng hoặc thanh toán");
-        JPanel visual = new JPanel(new GridBagLayout());
-        visual.setPreferredSize(new Dimension(10, 86));
-        visual.setBackground(categoryColor(categoryName));
-        JLabel icon = new JLabel("▣");
-        icon.setFont(UIConstants.font(Font.BOLD, 26));
-        icon.setForeground(categoryAccent(categoryName));
-        visual.add(icon);
-        JPanel info = new JPanel(null);
-        info.setOpaque(false);
-        info.setPreferredSize(new Dimension(10, 119));
-        JLabel code = label(id, Font.BOLD, 10, UIConstants.MUTED);
-        code.setBounds(13, 12, 130, 15);
-        info.add(code);
-        JLabel title = label(name, Font.BOLD, 13, UIConstants.TEXT);
-        title.setBounds(13, 31, 320, 22);
-        info.add(title);
-        JLabel priceLabel = label(Formats.money(price), Font.BOLD, 14, UIConstants.ORANGE);
-        priceLabel.setBounds(13, 73, 190, 20);
-        info.add(priceLabel);
-        JLabel stockLabel = label("Tồn: " + stock, Font.PLAIN, 11, UIConstants.MUTED);
-        stockLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        stockLabel.setBounds(245, 75, 88, 18);
-        info.add(stockLabel);
+        JPanel pnlVisual = new JPanel(new GridBagLayout());
+        pnlVisual.setPreferredSize(new Dimension(10, 86));
+        pnlVisual.setBackground(categoryColor(categoryName));
+        JLabel lblIcon = new JLabel("▣");
+        lblIcon.setFont(UIConstants.font(Font.BOLD, 26));
+        lblIcon.setForeground(categoryAccent(categoryName));
+        pnlVisual.add(lblIcon);
+        JPanel pnlInfo = new JPanel(null);
+        pnlInfo.setOpaque(false);
+        pnlInfo.setPreferredSize(new Dimension(10, 119));
+        JLabel lblCode = label(id, Font.BOLD, 10, UIConstants.MUTED);
+        lblCode.setBounds(13, 12, 130, 15);
+        pnlInfo.add(lblCode);
+        JLabel lblName = label(name, Font.BOLD, 13, UIConstants.TEXT);
+        lblName.setBounds(13, 31, 320, 22);
+        pnlInfo.add(lblName);
+        JLabel lblPrice = label(Formats.money(price), Font.BOLD, 14, UIConstants.ORANGE);
+        lblPrice.setBounds(13, 73, 190, 20);
+        pnlInfo.add(lblPrice);
+        JLabel lblStock = label("Tồn: " + stock, Font.PLAIN, 11, UIConstants.MUTED);
+        lblStock.setHorizontalAlignment(SwingConstants.RIGHT);
+        lblStock.setBounds(245, 75, 88, 18);
+        pnlInfo.add(lblStock);
         if (stock <= 0) {
-            JLabel out = label("Hết hàng", Font.BOLD, 11, new Color(220, 38, 38));
-            out.setBounds(245, 12, 88, 18);
-            out.setHorizontalAlignment(SwingConstants.RIGHT);
-            info.add(out);
+            JLabel lblOutOfStock = label("Hết hàng", Font.BOLD, 11, new Color(220, 38, 38));
+            lblOutOfStock.setBounds(245, 12, 88, 18);
+            lblOutOfStock.setHorizontalAlignment(SwingConstants.RIGHT);
+            pnlInfo.add(lblOutOfStock);
         }
-        card.add(visual, BorderLayout.NORTH);
-        card.add(info, BorderLayout.CENTER);
+        card.add(pnlVisual, BorderLayout.NORTH);
+        card.add(pnlInfo, BorderLayout.CENTER);
         MouseAdapter adapter = new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 selectProduct(card, id, name, price, stock);
@@ -277,10 +277,10 @@ public class ProductSearchPanel extends BaseScreenPanel {
         card.repaint();
     }
     private JLabel label(String text, int style, int size, Color color) {
-        JLabel l = new JLabel(text);
-        l.setFont(UIConstants.font(style, size));
-        l.setForeground(color);
-        return l;
+        JLabel lblText = new JLabel(text);
+        lblText.setFont(UIConstants.font(style, size));
+        lblText.setForeground(color);
+        return lblText;
     }
     private Color categoryColor(String category) {
         String s = category.toLowerCase(Locale.ROOT);
@@ -342,73 +342,73 @@ public class ProductSearchPanel extends BaseScreenPanel {
         btnDraft.setText("Đơn tạm  " + count);
     }
     private void showDraftDialog() {
-        final JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Đơn tạm", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setSize(820, 500);
-        dialog.setLocationRelativeTo(this);
-        dialog.setLayout(new BorderLayout(0, 12));
-        dialog.getContentPane().setBackground(UIConstants.BACKGROUND);
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(18, 18, 0, 18));
-        JLabel title = new JLabel("Đơn tạm");
-        title.setFont(UIConstants.font(Font.BOLD, 20));
-        title.setForeground(UIConstants.TEXT);
-        JLabel hint = new JLabel("Danh sách sản phẩm đang tư vấn cho khách hàng");
-        hint.setFont(UIConstants.font(Font.PLAIN, 12));
-        hint.setForeground(UIConstants.MUTED);
-        JPanel ht = new JPanel(); ht.setOpaque(false); ht.setLayout(new BoxLayout(ht, BoxLayout.Y_AXIS));
-        ht.add(title); ht.add(Box.createVerticalStrut(3)); ht.add(hint);
-        header.add(ht, BorderLayout.WEST);
-        dialog.add(header, BorderLayout.NORTH);
-        final JTable table = UIFactory.table(draftModel);
-        dialog.add(UIFactory.scroll(table), BorderLayout.CENTER);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.setOpaque(false);
-        buttons.setBorder(new EmptyBorder(0, 18, 18, 18));
-        final JButton minus = UIFactory.secondaryButton("− SL");
-        final JButton plus = UIFactory.secondaryButton("+ SL");
-        final JButton remove = UIFactory.secondaryButton("Xóa dòng");
-        final JButton clear = UIFactory.secondaryButton("Xóa đơn tạm");
-        final JButton payment = UIFactory.primaryButton("Thanh toán");
-        buttons.add(minus); buttons.add(plus); buttons.add(remove); buttons.add(clear); buttons.add(payment);
-        dialog.add(buttons, BorderLayout.SOUTH);
+        final JDialog winDraft = new JDialog(SwingUtilities.getWindowAncestor(this), "Đơn tạm", Dialog.ModalityType.APPLICATION_MODAL);
+        winDraft.setSize(820, 500);
+        winDraft.setLocationRelativeTo(this);
+        winDraft.setLayout(new BorderLayout(0, 12));
+        winDraft.getContentPane().setBackground(UIConstants.BACKGROUND);
+        JPanel pnlHeader = new JPanel(new BorderLayout());
+        pnlHeader.setOpaque(false);
+        pnlHeader.setBorder(new EmptyBorder(18, 18, 0, 18));
+        JLabel lblTitle = new JLabel("Đơn tạm");
+        lblTitle.setFont(UIConstants.font(Font.BOLD, 20));
+        lblTitle.setForeground(UIConstants.TEXT);
+        JLabel lblHint = new JLabel("Danh sách sản phẩm đang tư vấn cho khách hàng");
+        lblHint.setFont(UIConstants.font(Font.PLAIN, 12));
+        lblHint.setForeground(UIConstants.MUTED);
+        JPanel pnlHeaderText = new JPanel(); pnlHeaderText.setOpaque(false); pnlHeaderText.setLayout(new BoxLayout(pnlHeaderText, BoxLayout.Y_AXIS));
+        pnlHeaderText.add(lblTitle); pnlHeaderText.add(Box.createVerticalStrut(3)); pnlHeaderText.add(lblHint);
+        pnlHeader.add(pnlHeaderText, BorderLayout.WEST);
+        winDraft.add(pnlHeader, BorderLayout.NORTH);
+        final JTable tblDraft = UIFactory.table(draftModel);
+        winDraft.add(UIFactory.scroll(tblDraft), BorderLayout.CENTER);
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        pnlButtons.setOpaque(false);
+        pnlButtons.setBorder(new EmptyBorder(0, 18, 18, 18));
+        final JButton btnMinus = UIFactory.secondaryButton("− SL");
+        final JButton btnPlus = UIFactory.secondaryButton("+ SL");
+        final JButton btnRemove = UIFactory.secondaryButton("Xóa dòng");
+        final JButton btnClear = UIFactory.secondaryButton("Xóa đơn tạm");
+        final JButton btnPayment = UIFactory.primaryButton("Thanh toán");
+        pnlButtons.add(btnMinus); pnlButtons.add(btnPlus); pnlButtons.add(btnRemove); pnlButtons.add(btnClear); pnlButtons.add(btnPayment);
+        winDraft.add(pnlButtons, BorderLayout.SOUTH);
         Runnable updateDialogButtons = () -> {
             boolean hasRows = draftModel.getRowCount() > 0;
-            boolean hasSelection = table.getSelectedRow() >= 0;
-            minus.setEnabled(hasSelection);
-            plus.setEnabled(hasSelection);
-            remove.setEnabled(hasSelection);
-            clear.setEnabled(hasRows);
-            payment.setEnabled(hasRows);
+            boolean hasSelection = tblDraft.getSelectedRow() >= 0;
+            btnMinus.setEnabled(hasSelection);
+            btnPlus.setEnabled(hasSelection);
+            btnRemove.setEnabled(hasSelection);
+            btnClear.setEnabled(hasRows);
+            btnPayment.setEnabled(hasRows);
         };
         updateDialogButtons.run();
-        table.getSelectionModel().addListSelectionListener(e -> updateDialogButtons.run());
-        minus.addActionListener(e -> { adjustDraft(table, -1); updateDialogButtons.run(); });
-        plus.addActionListener(e -> { adjustDraft(table, 1); updateDialogButtons.run(); });
-        remove.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row >= 0) draftModel.removeRow(table.convertRowIndexToModel(row));
+        tblDraft.getSelectionModel().addListSelectionListener(e -> updateDialogButtons.run());
+        btnMinus.addActionListener(e -> { adjustDraft(tblDraft, -1); updateDialogButtons.run(); });
+        btnPlus.addActionListener(e -> { adjustDraft(tblDraft, 1); updateDialogButtons.run(); });
+        btnRemove.addActionListener(e -> {
+            int row = tblDraft.getSelectedRow();
+            if (row >= 0) draftModel.removeRow(tblDraft.convertRowIndexToModel(row));
             updateDraftCount();
             updateDialogButtons.run();
         });
-        clear.addActionListener(e -> {
+        btnClear.addActionListener(e -> {
             if (draftModel.getRowCount() > 0 && confirm("Xóa toàn bộ sản phẩm khỏi đơn tạm?")) {
                 draftModel.setRowCount(0);
                 updateDraftCount();
                 updateDialogButtons.run();
             }
         });
-        payment.addActionListener(e -> {
+        btnPayment.addActionListener(e -> {
             if (draftModel.getRowCount() <= 0) return;
             transferDraftToInvoice();
-            dialog.dispose();
+            winDraft.dispose();
         });
-        dialog.setVisible(true);
+        winDraft.setVisible(true);
     }
-    private void adjustDraft(JTable table, int delta) {
-        int vr = table.getSelectedRow();
+    private void adjustDraft(JTable tblDraft, int delta) {
+        int vr = tblDraft.getSelectedRow();
         if (vr < 0) return;
-        int row = table.convertRowIndexToModel(vr);
+        int row = tblDraft.convertRowIndexToModel(vr);
         String productId = String.valueOf(draftModel.getValueAt(row, 0));
         try {
             List<Map<String, Object>> rs = service.query(
