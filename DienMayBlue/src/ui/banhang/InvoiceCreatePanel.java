@@ -24,11 +24,14 @@ import ui.dungchung.*;
 public class InvoiceCreatePanel extends BaseScreenPanel {
     private static final long serialVersionUID = 1L;
 
+    private static final String PAY_CASH = "CASH";
+    private static final String PAY_TRANSFER = "BANK_TRANSFER";
+
     private final SalesService service = new SalesService();
     private final JComboBox<String> customer = new JComboBox<String>();
     private final JComboBox<String> product = new JComboBox<String>();
     private final JSpinner qty = new JSpinner(new SpinnerNumberModel(1, 1, 999, 1));
-    private final JComboBox<String> payment = UIFactory.combo(Formats.labels("CASH", "BANK_TRANSFER"));
+    private final JComboBox<String> payment = UIFactory.combo(Formats.labels(PAY_CASH, PAY_TRANSFER));
     private final JTextField cashReceived = UIFactory.field(180);
     private final JTextField transactionRef = UIFactory.field(220);
     private final JTextArea note = new JTextArea(3, 20);
@@ -689,8 +692,8 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
 
     private void updatePaymentFields() {
         String method = Formats.code(payment.getSelectedItem());
-        boolean cash = "CASH".equals(method);
-        boolean transfer = "BANK_TRANSFER".equals(method);
+        boolean cash = PAY_CASH.equals(method);
+        boolean transfer = PAY_TRANSFER.equals(method);
 
         // DEMO MODE: giữ các trường để minh họa quy trình nhưng người dùng không phải nhập tay.
         cashReceived.setEnabled(cash);
@@ -722,11 +725,11 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
 
     private void syncDemoPaymentData() {
         String method = Formats.code(payment.getSelectedItem());
-        if ("CASH".equals(method)) {
+        if (PAY_CASH.equals(method)) {
             BigDecimal total = currentTotal();
             cashReceived.setText(total.setScale(0, RoundingMode.HALF_UP).toPlainString());
             lblChange.setText("0đ");
-        } else if ("BANK_TRANSFER".equals(method)) {
+        } else if (PAY_TRANSFER.equals(method)) {
             String current = transactionRef.getText() == null ? "" : transactionRef.getText().trim();
             if (current.isEmpty() || !current.startsWith("DEMO-CK-"))
                 transactionRef.setText(newDemoTransactionRef());
@@ -739,7 +742,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
     }
 
     private void updateChange() {
-        if (!"CASH".equals(Formats.code(payment.getSelectedItem()))) { lblChange.setText("0đ"); return; }
+        if (!PAY_CASH.equals(Formats.code(payment.getSelectedItem()))) { lblChange.setText("0đ"); return; }
         try {
             BigDecimal received = parseMoney(cashReceived.getText());
             BigDecimal change = received.subtract(currentTotal());
@@ -1035,10 +1038,10 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             BigDecimal received = BigDecimal.ZERO;
             String ref = null;
 
-            if ("CASH".equals(method)) {
+            if (PAY_CASH.equals(method)) {
                 received = total;
                 cashReceived.setText(total.setScale(0, RoundingMode.HALF_UP).toPlainString());
-            } else if ("BANK_TRANSFER".equals(method)) {
+            } else if (PAY_TRANSFER.equals(method)) {
                 ref = transactionRef.getText() == null ? "" : transactionRef.getText().trim();
                 if (ref.isEmpty()) {
                     ref = newDemoTransactionRef();
@@ -1056,10 +1059,10 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             previewDialog.dispose();
 
             String message = "Thanh toán demo thành công. Mã hóa đơn: " + id;
-            if ("CASH".equals(method)) {
+            if (PAY_CASH.equals(method)) {
                 message += "\nTiền mặt mô phỏng: " + Formats.money(received)
                         + "\nTiền thừa: " + Formats.money(received.subtract(total));
-            } else if ("BANK_TRANSFER".equals(method)) {
+            } else if (PAY_TRANSFER.equals(method)) {
                 message += "\nMã giao dịch mô phỏng: " + ref;
             }
             info(message);
