@@ -473,7 +473,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             rebuildTable();
         } catch (Exception ex) { showError(ex); }
     }
-
+// Hiện tên, SĐT, hạng, điểm và ưu đãi của khách đang chọn; khách vãng lai không tích điểm.
     private void updateCustomerInfo() {
         String s = comboText(customer);
         if (s.isEmpty() || s.startsWith("Khách vãng lai")) {
@@ -487,7 +487,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             return;
         }
         try {
-            String customerId = s.substring(0, s.indexOf(" - "));
+            String customerId = extractId(s);
             Map<String,Object> r = Db.one(
                     "SELECT c.full_name,c.phone,c.current_points,ISNULL(t.tier_name,N'Tiêu chuẩn') tier_name,"
                   + "ISNULL(t.discount_rate,0) discount_rate,ISNULL(t.point_multiplier,1) point_multiplier "
@@ -500,16 +500,15 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
                     + "  •  Hệ số điểm: " + r.get("point_multiplier"));
         } catch (Exception ex) { showError(ex); }
     }
-
+// Hiện giá bán và tồn kho của sản phẩm đang chọn; về mặc định nếu chưa chọn sản phẩm nào.
     private void updateSelectedProductInfo() {
-        String s = comboText(product);
-        if (s.isEmpty() || !s.contains(" - ")) {
+        String id = extractId(comboText(product));
+        if (id == null) {
             lblSelectedPrice.setText("0đ");
             lblSelectedStock.setText("-");
             return;
         }
         try {
-            String id = s.substring(0, s.indexOf(" - "));
             Map<String,Object> p = loadSellableProduct(id);
             lblSelectedPrice.setText(Formats.money(p.get("sale_price")));
             lblSelectedStock.setText(String.valueOf(p.get("stock_quantity")));
@@ -518,11 +517,10 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             lblSelectedStock.setText("-");
         }
     }
-
+// Thêm sản phẩm đang chọn vào giỏ; kiểm tra tồn kho và cộng dồn nếu sản phẩm đã có.
     private void addProduct() {
-        String s = comboText(product);
-        if (s.isEmpty() || !s.contains(" - ")) return;
-        String id = s.substring(0, s.indexOf(" - "));
+        String id = extractId(comboText(product));
+        if (id == null) return;
         try {
             Map<String,Object> p = loadSellableProduct(id);
             int q = ((Number) qty.getValue()).intValue();
@@ -632,11 +630,11 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         BigDecimal memberDiscount=gross.multiply(memberRate).divide(new BigDecimal("100"),2,RoundingMode.HALF_UP);
         return bestPromotion.max(memberDiscount).min(gross);
     }
-
+// Lấy % giảm giá theo hạng thành viên của khách đang chọn; khách vãng lai thì không giảm.
     private BigDecimal currentMemberDiscountRate() throws Exception {
         String s = comboText(customer);
         if (s.isEmpty() || s.startsWith("Khách vãng lai") || !s.contains(" - ")) return BigDecimal.ZERO;
-        String customerId=s.substring(0,s.indexOf(" - "));
+        String customerId = extractId(s);
         Object rate=Db.scalar("SELECT ISNULL(t.discount_rate,0) FROM customers c LEFT JOIN membership_tiers t ON t.tier_id=c.tier_id WHERE c.customer_id=?",customerId);
         return rate instanceof BigDecimal ? (BigDecimal)rate : new BigDecimal(String.valueOf(rate==null?0:rate));
     }
