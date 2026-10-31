@@ -82,8 +82,10 @@ public class SalesService extends BaseService<SalesDAO> {
         }
     }
 
+    // Lập hóa đơn: kiểm tra, tính giảm giá, trừ kho, thanh toán, tích điểm, thưởng.
     public String createInvoice(
             String customerId, List<InvoiceItem> items, String paymentMethod, String transactionRef, String note) throws Exception {
+        // Bước 1: kiểm tra dữ liệu đầu vào, quyền và hình thức thanh toán
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Hóa đơn chưa có sản phẩm.");
         }
@@ -98,6 +100,7 @@ public class SalesService extends BaseService<SalesDAO> {
         if (("CARD".equals(method) || "BANK_TRANSFER".equals(method)) && (transactionRef == null || transactionRef.trim().isEmpty())) {
             throw new IllegalArgumentException( "Cần nhập mã giao dịch cho thanh toán thẻ/chuyển khoản.");
         }
+        // Bước 2: gộp các dòng trùng sản phẩm thành một
         LinkedHashMap<String, Integer> quantities = new LinkedHashMap<>();
         for (InvoiceItem item : items) {
             if (item == null || item.productId == null || item.productId.trim().isEmpty() || item.quantity <= 0) {
@@ -105,9 +108,11 @@ public class SalesService extends BaseService<SalesDAO> {
             }
             quantities.merge(item.productId.trim(), item.quantity, Integer::sum);
         }
+        // Bước 3: toàn bộ việc lập hóa đơn chạy trong 1 transaction, lỗi thì hoàn tác hết
         return dao.transaction(con -> {
             ensureCanSell(con, account);
             String employeeId = account.getEmployee().getEmployeeId();
+        // Bước 4: lấy ưu đãi theo hạng thành viên của khách
             BigDecimal memberDiscountRate = BigDecimal.ZERO;
             BigDecimal pointMultiplier = BigDecimal.ONE;
             String normalizedCustomerId = customerId == null ? "" : customerId.trim();
@@ -119,6 +124,7 @@ public class SalesService extends BaseService<SalesDAO> {
                 memberDiscountRate = (BigDecimal) customer.get("discount_rate");
                 pointMultiplier = (BigDecimal) customer.get("point_multiplier");
             }
+        // Bước 5: sinh mã hóa đơn mới
             String invoiceId = nextInvoiceId(con);
             BigDecimal subtotal = BigDecimal.ZERO;
             BigDecimal discountTotal = BigDecimal.ZERO;
@@ -141,6 +147,7 @@ public class SalesService extends BaseService<SalesDAO> {
                 BigDecimal costPrice = (BigDecimal) product.get("cost_price");
                 BigDecimal gross = salePrice.multiply(BigDecimal.valueOf(quantity));
                 int categoryId = ((Number) product.get("category_id")).intValue();
+        // Bước 6: với mỗi sản phẩm, lấy giảm giá cao hơn giữa khuyến mãi và ưu đãi thành viên
                 BigDecimal promotionDiscount = bestPromotionDiscount( con, productId, categoryId, gross, quantity);
                 BigDecimal memberDiscount = gross .multiply(memberDiscountRate) .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
                 BigDecimal discount = promotionDiscount.max(memberDiscount).min(gross);
@@ -149,6 +156,7 @@ public class SalesService extends BaseService<SalesDAO> {
                 subtotal = subtotal.add(gross);
                 discountTotal = discountTotal.add(discount);
             }
+        // Bước 7: tính tổng tiền phải trả
             BigDecimal total = subtotal.subtract(discountTotal);
             if (total.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new IllegalArgumentException("Tổng thanh toán phải lớn hơn 0.");
@@ -164,8 +172,10 @@ public class SalesService extends BaseService<SalesDAO> {
                 dao.insertInvoiceDetail(
                         con, invoiceId, line.productId, line.quantity, line.salePrice, line.costPrice, line.discount, line.lineTotal);
             }
+        // Bước 8: ghi thanh toán
             dao.insertPayment( con, invoiceId, method, total, emptyToNull(transactionRef));
             if (!normalizedCustomerId.isEmpty()) {
+        // Bước 9: cộng điểm tích lũy (10.000đ = 1 điểm, nhân hệ số hạng) và cập nhật hạng
                 BigDecimal basePoints = total.divide( POINT_VND_PER_POINT, 0, RoundingMode.DOWN);
                 int points = basePoints .multiply(pointMultiplier) .setScale(0, RoundingMode.DOWN) .intValue();
                 if (points > 0) {
@@ -174,6 +184,7 @@ public class SalesService extends BaseService<SalesDAO> {
                     dao.refreshCustomerTier(con, normalizedCustomerId);
                 }
             }
+        // Thưởng bán hàng 3% cho nhân viên, rồi ghi nhật ký
             BigDecimal bonus = total .multiply(DEFAULT_BONUS_RATE) .setScale(2, RoundingMode.HALF_UP);
             dao.insertSalesBonus( con, employeeId, invoiceId, total, DEFAULT_BONUS_RATE, bonus);
             dao.insertAuditLog(
@@ -182,6 +193,7 @@ public class SalesService extends BaseService<SalesDAO> {
         });
     }
 
+    // Sinh mã hóa đơn kế tiếp theo dạng HD00001.
     private String nextInvoiceId(Connection con) throws SQLException {
         int next = Math.max(dao.maxShortInvoiceNumber(con), dao.invoiceCount(con)) + 1;
         while (next <= 99999) {

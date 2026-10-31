@@ -12,6 +12,7 @@ import java.util.Map;
  */
 public class SalesDAO extends BaseDAO {
 
+// ===== Kiểm tra quyền bán: trạng thái tài khoản và ca làm việc =====
     public Map<String, Object> findAccountSaleState(Connection con, int accountId) throws SQLException {
         return one(con, "SELECT ac.status account_status,e.status employee_status,r.role_code " +
                 "FROM accounts ac JOIN employees e ON e.employee_id=ac.employee_id " +
@@ -26,6 +27,7 @@ public class SalesDAO extends BaseDAO {
         return id != null;
     }
 
+// ===== Tra cứu khách hàng, sản phẩm, khuyến mãi =====
     public Map<String, Object> findCustomerMembership(Connection con, String customerId)
             throws SQLException {
         return one(con, "SELECT c.customer_id,c.status,ISNULL(t.discount_rate,0) discount_rate," +
@@ -39,6 +41,7 @@ public class SalesDAO extends BaseDAO {
                 "FROM products WHERE product_id=?", productId);
     }
 
+// ===== Sinh mã hóa đơn HD00001 =====
     public int maxShortInvoiceNumber(Connection con) throws SQLException {
         Object value = scalar(con, "SELECT ISNULL(MAX(TRY_CONVERT(INT,SUBSTRING(invoice_id,3,5))),0) " +
                 "FROM invoices WHERE LEN(invoice_id)=7 " + "AND invoice_id LIKE 'HD[0-9][0-9][0-9][0-9][0-9]'");
@@ -64,6 +67,7 @@ public class SalesDAO extends BaseDAO {
                 "AND (pp.product_id=? OR pc.category_id=?)", productId, categoryId);
     }
 
+// ===== Ghi hóa đơn, trừ tồn kho, chi tiết hóa đơn, thanh toán =====
     public void insertInvoice(
             Connection con, String invoiceId, Object customerId, String employeeId,
             BigDecimal subtotal, BigDecimal discount, BigDecimal total, Object note) throws SQLException {
@@ -92,6 +96,7 @@ public class SalesDAO extends BaseDAO {
                 "VALUES(?,?,?,'SUCCESS',?)", invoiceId, method, amount, transactionRef);
     }
 
+// ===== Tích điểm và cập nhật hạng khách hàng =====
     public void insertEarnedPoints(
             Connection con, String customerId, String invoiceId, int points) throws SQLException {
         update(con, "INSERT INTO point_transactions(" + "customer_id,invoice_id,transaction_type,points_change,note) " +
@@ -108,6 +113,7 @@ public class SalesDAO extends BaseDAO {
                 "WHERE min_points<=c.current_points ORDER BY min_points DESC) x " + "WHERE c.customer_id=?", customerId);
     }
 
+// ===== Thưởng bán hàng, thông báo, nhật ký hệ thống =====
     public void insertSalesBonus(
             Connection con, String employeeId, String invoiceId, BigDecimal salesAmount,
             BigDecimal bonusRate, BigDecimal bonusAmount) throws SQLException {

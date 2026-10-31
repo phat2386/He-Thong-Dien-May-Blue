@@ -12,10 +12,10 @@ import ui.chinh.MainFrame;
 
 /** UC017 - Tổng quan quản lý bán hàng. */
 public class SalesManagementPanel extends BaseScreenPanel {
+    private static final long serialVersionUID = 1L;
         
     // Các trạng thái hóa đơn được tính vào doanh thu và thống kê bán hàng.
     private static final String COUNTED_STATUSES = "('PAID','PARTIAL_REFUND','REFUNDED')";
-    private static final long serialVersionUID = 1L;
 
     private final JLabel lblRevenue = new JLabel("0đ");
     private final JLabel lblInvoices = new JLabel("0");
