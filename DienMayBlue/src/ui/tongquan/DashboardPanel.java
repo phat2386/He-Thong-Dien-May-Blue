@@ -1,6 +1,5 @@
 package ui.tongquan;
 
-
 import service.SalesService;
 import java.awt.*;
 import java.util.*;
@@ -9,13 +8,12 @@ import javax.swing.table.DefaultTableModel;
 import util.Formats;
 import ui.dungchung.*;
 
-
 public class DashboardPanel extends BaseScreenPanel {
 	
 	private static final long serialVersionUID=1L;
 	
 	private final SalesService service = new SalesService();
-	private final JPanel cardsContainer = new JPanel(new GridLayout(1,6,16,0));
+	private final JPanel cardsContainer = new JPanel(new GridLayout(1,4,16,0));
 	private final RevenueChart revenueChart = new RevenueChart();
 	private final JPanel categoryListPanel = new JPanel();
 	
@@ -36,7 +34,7 @@ public class DashboardPanel extends BaseScreenPanel {
 		cardsContainer.setPreferredSize(new Dimension(100,118));
 		
 		JPanel middleSection = createMiddleSection();
-		JPanel recentSection = createRecentSection();
+		JPanel recentSection = createRecentOrderSection();
 		
 		JPanel centerPanel = new JPanel(new BorderLayout(0, 16));
         centerPanel.setOpaque(false);
@@ -46,13 +44,6 @@ public class DashboardPanel extends BaseScreenPanel {
         body.add(cardsContainer,BorderLayout.NORTH);
         body.add(centerPanel,BorderLayout.CENTER);
         
-	}
-
-	private JPanel createRecentSection() {
-		 JPanel panel = new JPanel(new BorderLayout());
-		    panel.add(recentTable.getTableHeader(), BorderLayout.NORTH);
-		    panel.add(recentTable, BorderLayout.CENTER);
-		    return panel;
 	}
 
 	private JPanel createMiddleSection() {
@@ -104,32 +95,21 @@ public class DashboardPanel extends BaseScreenPanel {
         
         return middleGrid;
     }
-	
+
 	private JPanel createRecentOrderSection() {
-        RoundedPanel recentCard = new RoundedPanel(14, Color.WHITE);
-        recentCard.setLayout(new BorderLayout());
-        recentCard.setBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0));
-        
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
-        headerPanel.setBorder(new javax.swing.border.EmptyBorder(12, 16, 11, 16));
-        
-        JLabel titleTable = new JLabel("Đơn hàng gần đây");
-        titleTable.setFont(UIConstants.font(Font.BOLD, 13));
-        titleTable.setForeground(UIConstants.TEXT);
-        
-        JLabel linkMore = new JLabel("Xem tất cả →");
-        linkMore.setFont(UIConstants.font(Font.BOLD, 10));
-        linkMore.setForeground(UIConstants.ORANGE);
-        
-        headerPanel.add(titleTable, BorderLayout.WEST);
-        headerPanel.add(linkMore, BorderLayout.EAST);
-        
-        recentCard.add(headerPanel, BorderLayout.NORTH);
-        recentCard.add(UIFactory.scroll(recentTable), BorderLayout.CENTER);
-        
-        return recentCard;
-    }
+	    RoundedPanel recentCard = new RoundedPanel(14, Color.WHITE);
+	    recentCard.setLayout(new BorderLayout());
+
+	    JLabel title = new JLabel("Đơn hàng gần đây");
+	    title.setFont(UIConstants.font(Font.BOLD, 13));
+	    title.setForeground(UIConstants.TEXT);
+	    title.setBorder(new javax.swing.border.EmptyBorder(12, 16, 11, 16));
+
+	    recentCard.add(title, BorderLayout.NORTH);
+	    recentCard.add(UIFactory.scroll(recentTable), BorderLayout.CENTER);
+
+	    return recentCard;
+	}
 
 	@Override
 	public void refreshData() {
@@ -205,9 +185,10 @@ public class DashboardPanel extends BaseScreenPanel {
                 });
             }
             
-            revalidate();
-            repaint();
-        } catch (Exception ex) {
+            body.revalidate();
+            body.repaint();
+        }catch (Exception ex) {
+            ex.printStackTrace();
             showError(ex);
         }
 	}
@@ -336,4 +317,15 @@ public class DashboardPanel extends BaseScreenPanel {
         }
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame f = new JFrame("Dashboard Tổng Quan");
+            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            f.setContentPane(new DashboardPanel());
+            f.setMinimumSize(new Dimension(1000, 680));
+            f.setSize(1260, 780);
+            f.setLocationRelativeTo(null);
+            f.setVisible(true);
+        });
+    }
 }
