@@ -15,28 +15,28 @@ public class PromotionManagementPanel extends BaseScreenPanel {
     private static final long serialVersionUID=1L;
     private final ProductService service = new ProductService();
     private final DefaultTableModel model=UIFactory.readOnlyModel(new Object[]{"Mã KM","Chương trình","Loại","Mức giảm","Bắt đầu","Kết thúc","Trạng thái"});
-    private final JTable table=UIFactory.table(model);
+    private final JTable tblPromotion=UIFactory.table(model);
     public PromotionManagementPanel(){
         super("Quản lý khuyến mãi","Quản lý chương trình khuyến mãi và phạm vi áp dụng cho sản phẩm.");
-        JButton add=UIFactory.primaryButton("+ Tạo khuyến mãi");
-        JButton scope=UIFactory.secondaryButton("Xem phạm vi");
-        JButton end=UIFactory.secondaryButton("Kết thúc sớm");
-        JButton delete=UIFactory.secondaryButton("Xóa khuyến mãi");
-        JButton refresh=UIFactory.secondaryButton("Làm mới");
-        delete.setEnabled(false);
-        actions.add(add);actions.add(scope);actions.add(end);actions.add(delete);actions.add(refresh);
-        body.add(UIFactory.scroll(table),BorderLayout.CENTER);
-        add.addActionListener(e->create());
-        scope.addActionListener(e->viewScope());
-        end.addActionListener(e->endEarly());
-        delete.addActionListener(e->deleteEndedPromotion());
-        refresh.addActionListener(e->refreshData());
-        table.getSelectionModel().addListSelectionListener(e->{
+        JButton btnAdd=UIFactory.primaryButton("+ Tạo khuyến mãi");
+        JButton btnScope=UIFactory.secondaryButton("Xem phạm vi");
+        JButton btnEnd=UIFactory.secondaryButton("Kết thúc sớm");
+        JButton btnDelete=UIFactory.secondaryButton("Xóa khuyến mãi");
+        JButton btnRefresh=UIFactory.secondaryButton("Làm mới");
+        btnDelete.setEnabled(false);
+        actions.add(btnAdd);actions.add(btnScope);actions.add(btnEnd);actions.add(btnDelete);actions.add(btnRefresh);
+        body.add(UIFactory.scroll(tblPromotion),BorderLayout.CENTER);
+        btnAdd.addActionListener(e->create());
+        btnScope.addActionListener(e->viewScope());
+        btnEnd.addActionListener(e->endEarly());
+        btnDelete.addActionListener(e->deleteEndedPromotion());
+        btnRefresh.addActionListener(e->refreshData());
+        tblPromotion.getSelectionModel().addListSelectionListener(e->{
             if(e.getValueIsAdjusting())return;
-            int vr=table.getSelectedRow();
-            if(vr<0){delete.setEnabled(false);return;}
-            int r=table.convertRowIndexToModel(vr);
-            delete.setEnabled("ENDED".equals(Formats.code(model.getValueAt(r,6))));
+            int vr=tblPromotion.getSelectedRow();
+            if(vr<0){btnDelete.setEnabled(false);return;}
+            int r=tblPromotion.convertRowIndexToModel(vr);
+            btnDelete.setEnabled("ENDED".equals(Formats.code(model.getValueAt(r,6))));
         });
         refreshData();
     }
@@ -51,36 +51,36 @@ public class PromotionManagementPanel extends BaseScreenPanel {
     }
     private void create(){
         try{
-            JTextField code=UIFactory.field(160),name=UIFactory.field(280),value=UIFactory.field(120),
-                    start=UIFactory.field(160),end=UIFactory.field(160);
-            JComboBox<String> type=UIFactory.combo("Phần trăm","Số tiền cố định");
-            JComboBox<String> scopeType=UIFactory.combo("Theo sản phẩm","Theo danh mục","Toàn bộ sản phẩm");
-            JButton chooseScope=UIFactory.secondaryButton("Chọn sản phẩm...");
+            JTextField txtCode=UIFactory.field(160),txtName=UIFactory.field(280),txtValue=UIFactory.field(120),
+                    txtStart=UIFactory.field(160),txtEnd=UIFactory.field(160);
+            JComboBox<String> cmbType=UIFactory.combo("Phần trăm","Số tiền cố định");
+            JComboBox<String> cmbScopeType=UIFactory.combo("Theo sản phẩm","Theo danh mục","Toàn bộ sản phẩm");
+            JButton btnChooseScope=UIFactory.secondaryButton("Chọn sản phẩm...");
             final LinkedHashSet<String> products=new LinkedHashSet<String>();
             final LinkedHashSet<Integer> categories=new LinkedHashSet<Integer>();
-            code.setText(nextPromotionCode());
-            start.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-            end.setText(LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-            JPanel scopeBox=new JPanel(new BorderLayout(8,0));
-            scopeBox.setOpaque(false);
-            scopeBox.add(chooseScope,BorderLayout.WEST);
+            txtCode.setText(nextPromotionCode());
+            txtStart.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+            txtEnd.setText(LocalDateTime.now().plusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+            JPanel pnlScopeBox=new JPanel(new BorderLayout(8,0));
+            pnlScopeBox.setOpaque(false);
+            pnlScopeBox.add(btnChooseScope,BorderLayout.WEST);
             Runnable updateScopeUi=()->{
-                String selected=String.valueOf(scopeType.getSelectedItem());
+                String selected=String.valueOf(cmbScopeType.getSelectedItem());
                 if("Theo sản phẩm".equals(selected)){
-                    chooseScope.setEnabled(true);
-                    chooseScope.setText("Chọn sản phẩm...");
+                    btnChooseScope.setEnabled(true);
+                    btnChooseScope.setText("Chọn sản phẩm...");
                 }else if("Theo danh mục".equals(selected)){
-                    chooseScope.setEnabled(true);
-                    chooseScope.setText("Chọn danh mục...");
+                    btnChooseScope.setEnabled(true);
+                    btnChooseScope.setText("Chọn danh mục...");
                 }else{
-                    chooseScope.setEnabled(false);
-                    chooseScope.setText("Toàn bộ sản phẩm");
+                    btnChooseScope.setEnabled(false);
+                    btnChooseScope.setText("Toàn bộ sản phẩm");
                 }
             };
-            scopeType.addActionListener(e->updateScopeUi.run());
-            chooseScope.addActionListener(e->{
+            cmbScopeType.addActionListener(e->updateScopeUi.run());
+            btnChooseScope.addActionListener(e->{
                 try{
-                    String selected=String.valueOf(scopeType.getSelectedItem());
+                    String selected=String.valueOf(cmbScopeType.getSelectedItem());
                     if("Theo sản phẩm".equals(selected)){
                         LinkedHashSet<String> chosen=chooseProductScope(products);
                         if(chosen!=null){
@@ -97,19 +97,19 @@ public class PromotionManagementPanel extends BaseScreenPanel {
                 }catch(Exception ex){showError(ex);}
             });
             updateScopeUi.run();
-            JPanel p=new JPanel(new GridLayout(0,2,8,8));
-            p.add(new JLabel("Mã chương trình"));p.add(code);
-            p.add(new JLabel("Tên chương trình"));p.add(name);
-            p.add(new JLabel("Loại giảm"));p.add(type);
-            p.add(new JLabel("Giá trị"));p.add(value);
-            p.add(new JLabel("Bắt đầu yyyy-MM-dd HH:mm"));p.add(start);
-            p.add(new JLabel("Kết thúc"));p.add(end);
-            p.add(new JLabel("Phạm vi áp dụng"));p.add(scopeType);
-            p.add(new JLabel("Đối tượng áp dụng"));p.add(scopeBox);
-            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),p,"Tạo chương trình khuyến mãi",
+            JPanel pnlForm=new JPanel(new GridLayout(0,2,8,8));
+            pnlForm.add(new JLabel("Mã chương trình"));pnlForm.add(txtCode);
+            pnlForm.add(new JLabel("Tên chương trình"));pnlForm.add(txtName);
+            pnlForm.add(new JLabel("Loại giảm"));pnlForm.add(cmbType);
+            pnlForm.add(new JLabel("Giá trị"));pnlForm.add(txtValue);
+            pnlForm.add(new JLabel("Bắt đầu yyyy-MM-dd HH:mm"));pnlForm.add(txtStart);
+            pnlForm.add(new JLabel("Kết thúc"));pnlForm.add(txtEnd);
+            pnlForm.add(new JLabel("Phạm vi áp dụng"));pnlForm.add(cmbScopeType);
+            pnlForm.add(new JLabel("Đối tượng áp dụng"));pnlForm.add(pnlScopeBox);
+            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlForm,"Tạo chương trình khuyến mãi",
                     JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
-            String promotionCode=code.getText().trim().toUpperCase(Locale.ROOT);
-            String promotionName=name.getText().trim();
+            String promotionCode=txtCode.getText().trim().toUpperCase(Locale.ROOT);
+            String promotionName=txtName.getText().trim();
             if(promotionCode.isEmpty() || promotionName.isEmpty())
                 throw new IllegalArgumentException("Mã và tên chương trình không được để trống.");
             if(!promotionCode.matches("[A-Z0-9_-]{2,20}"))
@@ -117,16 +117,16 @@ public class PromotionManagementPanel extends BaseScreenPanel {
             Object duplicated=service.scalar("SELECT COUNT(*) FROM promotions WHERE promotion_code=?",promotionCode);
             if(duplicated!=null && ((Number)duplicated).intValue()>0)
                 throw new IllegalArgumentException("Mã chương trình đã tồn tại.");
-            LocalDateTime s=LocalDateTime.parse(start.getText().trim(),DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-            LocalDateTime e=LocalDateTime.parse(end.getText().trim(),DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            LocalDateTime s=LocalDateTime.parse(txtStart.getText().trim(),DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            LocalDateTime e=LocalDateTime.parse(txtEnd.getText().trim(),DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
             if(!s.isBefore(e))throw new IllegalArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
             if(!e.isAfter(LocalDateTime.now()))throw new IllegalArgumentException("Thời gian kết thúc phải ở tương lai.");
-            BigDecimal v=new BigDecimal(value.getText().trim());
-            String discountType=Formats.code(type.getSelectedItem());
+            BigDecimal v=new BigDecimal(txtValue.getText().trim());
+            String discountType=Formats.code(cmbType.getSelectedItem());
             if(v.compareTo(BigDecimal.ZERO)<=0)throw new IllegalArgumentException("Mức giảm phải lớn hơn 0.");
             if("PERCENT".equals(discountType) && v.compareTo(new BigDecimal("100"))>=0)
                 throw new IllegalArgumentException("Giảm phần trăm phải nhỏ hơn 100%. Hệ thống chưa dùng loại khuyến mãi tặng miễn phí.");
-            String scope=String.valueOf(scopeType.getSelectedItem());
+            String scope=String.valueOf(cmbScopeType.getSelectedItem());
             if("Theo sản phẩm".equals(scope)){
                 categories.clear();
                 if(products.isEmpty())throw new IllegalArgumentException("Hãy chọn ít nhất một sản phẩm áp dụng.");
@@ -166,12 +166,12 @@ public class PromotionManagementPanel extends BaseScreenPanel {
                 previewModel.addRow(new Object[]{product.get("product_id"),product.get("product_name"),product.get("category_name"),
                         Formats.money(sale),Formats.money(discount),Formats.money(after)});
             }
-            JTable preview=UIFactory.table(previewModel);
-            JScrollPane previewScroll=UIFactory.scroll(preview);previewScroll.setPreferredSize(new Dimension(760,280));
-            JPanel previewPanel=new JPanel(new BorderLayout(0,8));
-            previewPanel.add(new JLabel("Xem trước giá sau khuyến mãi cho "+affected.size()+" sản phẩm. Khuyến mãi không được cộng dồn với chương trình khác."),BorderLayout.NORTH);
-            previewPanel.add(previewScroll,BorderLayout.CENTER);
-            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),previewPanel,"Xác nhận chương trình",
+            JTable tblPreview=UIFactory.table(previewModel);
+            JScrollPane scrPreview=UIFactory.scroll(tblPreview);scrPreview.setPreferredSize(new Dimension(760,280));
+            JPanel pnlPreview=new JPanel(new BorderLayout(0,8));
+            pnlPreview.add(new JLabel("Xem trước giá sau khuyến mãi cho "+affected.size()+" sản phẩm. Khuyến mãi không được cộng dồn với chương trình khác."),BorderLayout.NORTH);
+            pnlPreview.add(scrPreview,BorderLayout.CENTER);
+            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlPreview,"Xác nhận chương trình",
                     JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
             final LinkedHashSet<String> fproducts=new LinkedHashSet<String>(products);
             final LinkedHashSet<Integer> fcategories=new LinkedHashSet<Integer>(categories);
@@ -209,49 +209,49 @@ public class PromotionManagementPanel extends BaseScreenPanel {
         }
         final LinkedHashSet<String> selected=new LinkedHashSet<String>();
         if(selectedProductIds!=null)selected.addAll(selectedProductIds);
-        JTextField search=new HintTextField("Nhập mã sản phẩm...");
-        search.setPreferredSize(new Dimension(420,38));
-        JPanel listPanel=new JPanel();
-        listPanel.setLayout(new BoxLayout(listPanel,BoxLayout.Y_AXIS));
-        listPanel.setBackground(Color.WHITE);
-        JScrollPane scroll=new JScrollPane(listPanel);
-        scroll.setPreferredSize(new Dimension(540,300));
+        JTextField txtSearch=new HintTextField("Nhập mã sản phẩm...");
+        txtSearch.setPreferredSize(new Dimension(420,38));
+        JPanel pnlList=new JPanel();
+        pnlList.setLayout(new BoxLayout(pnlList,BoxLayout.Y_AXIS));
+        pnlList.setBackground(Color.WHITE);
+        JScrollPane scrList=new JScrollPane(pnlList);
+        scrList.setPreferredSize(new Dimension(540,300));
         final Runnable rebuild=()->{
-            listPanel.removeAll();
-            String kw=search.getText().trim().toUpperCase(Locale.ROOT);
+            pnlList.removeAll();
+            String kw=txtSearch.getText().trim().toUpperCase(Locale.ROOT);
             int visible=0;
             for(ScopeChoice c:choices){
                 String code=String.valueOf(c.value).toUpperCase(Locale.ROOT);
                 if(!kw.isEmpty() && !code.contains(kw))continue;
-                JCheckBox check=new JCheckBox(c.label);
-                check.setBackground(Color.WHITE);
-                check.setFont(UIConstants.NORMAL);
-                check.setSelected(selected.contains(String.valueOf(c.value)));
-                check.addItemListener(ev->{
+                JCheckBox chkItem=new JCheckBox(c.label);
+                chkItem.setBackground(Color.WHITE);
+                chkItem.setFont(UIConstants.NORMAL);
+                chkItem.setSelected(selected.contains(String.valueOf(c.value)));
+                chkItem.addItemListener(ev->{
                     String id=String.valueOf(c.value);
-                    if(check.isSelected())selected.add(id);else selected.remove(id);
+                    if(chkItem.isSelected())selected.add(id);else selected.remove(id);
                 });
-                listPanel.add(check);
-                listPanel.add(Box.createVerticalStrut(5));
+                pnlList.add(chkItem);
+                pnlList.add(Box.createVerticalStrut(5));
                 visible++;
             }
             if(visible==0){
-                JLabel empty=new JLabel("Không tìm thấy sản phẩm theo mã đã nhập.");
-                empty.setForeground(UIConstants.MUTED);
-                listPanel.add(empty);
+                JLabel lblEmpty=new JLabel("Không tìm thấy sản phẩm theo mã đã nhập.");
+                lblEmpty.setForeground(UIConstants.MUTED);
+                pnlList.add(lblEmpty);
             }
-            listPanel.revalidate();
-            listPanel.repaint();
+            pnlList.revalidate();
+            pnlList.repaint();
         };
-        UIFactory.onTextChange(search, rebuild);
+        UIFactory.onTextChange(txtSearch, rebuild);
         rebuild.run();
-        JPanel chooser=new JPanel(new BorderLayout(0,8));
-        chooser.add(new JLabel("Có thể chọn nhiều sản phẩm. Nhập mã sản phẩm để lọc nhanh."),BorderLayout.NORTH);
-        JPanel center=new JPanel(new BorderLayout(0,8));
-        center.add(search,BorderLayout.NORTH);
-        center.add(scroll,BorderLayout.CENTER);
-        chooser.add(center,BorderLayout.CENTER);
-        if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),chooser,"Chọn sản phẩm áp dụng",
+        JPanel pnlChooser=new JPanel(new BorderLayout(0,8));
+        pnlChooser.add(new JLabel("Có thể chọn nhiều sản phẩm. Nhập mã sản phẩm để lọc nhanh."),BorderLayout.NORTH);
+        JPanel pnlCenter=new JPanel(new BorderLayout(0,8));
+        pnlCenter.add(txtSearch,BorderLayout.NORTH);
+        pnlCenter.add(scrList,BorderLayout.CENTER);
+        pnlChooser.add(pnlCenter,BorderLayout.CENTER);
+        if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlChooser,"Chọn sản phẩm áp dụng",
                 JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return null;
         if(selected.isEmpty()){info("Hãy chọn ít nhất một sản phẩm áp dụng.");return null;}
         return new LinkedHashSet<String>(selected);
@@ -263,25 +263,25 @@ public class PromotionManagementPanel extends BaseScreenPanel {
         }
         final LinkedHashSet<Integer> selected=new LinkedHashSet<Integer>();
         if(selectedCategoryIds!=null)selected.addAll(selectedCategoryIds);
-        JPanel listPanel=new JPanel();
-        listPanel.setLayout(new BoxLayout(listPanel,BoxLayout.Y_AXIS));
-        listPanel.setBackground(Color.WHITE);
+        JPanel pnlList=new JPanel();
+        pnlList.setLayout(new BoxLayout(pnlList,BoxLayout.Y_AXIS));
+        pnlList.setBackground(Color.WHITE);
         for(ScopeChoice c:choices){
             Integer id=(Integer)c.value;
-            JCheckBox check=new JCheckBox(c.label);
-            check.setBackground(Color.WHITE);
-            check.setFont(UIConstants.NORMAL);
-            check.setSelected(selected.contains(id));
-            check.addItemListener(ev->{if(check.isSelected())selected.add(id);else selected.remove(id);});
-            listPanel.add(check);
-            listPanel.add(Box.createVerticalStrut(5));
+            JCheckBox chkItem=new JCheckBox(c.label);
+            chkItem.setBackground(Color.WHITE);
+            chkItem.setFont(UIConstants.NORMAL);
+            chkItem.setSelected(selected.contains(id));
+            chkItem.addItemListener(ev->{if(chkItem.isSelected())selected.add(id);else selected.remove(id);});
+            pnlList.add(chkItem);
+            pnlList.add(Box.createVerticalStrut(5));
         }
-        JScrollPane scroll=new JScrollPane(listPanel);
-        scroll.setPreferredSize(new Dimension(440,260));
-        JPanel chooser=new JPanel(new BorderLayout(0,8));
-        chooser.add(new JLabel("Có thể chọn một hoặc nhiều danh mục."),BorderLayout.NORTH);
-        chooser.add(scroll,BorderLayout.CENTER);
-        if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),chooser,"Chọn danh mục áp dụng",
+        JScrollPane scrList=new JScrollPane(pnlList);
+        scrList.setPreferredSize(new Dimension(440,260));
+        JPanel pnlChooser=new JPanel(new BorderLayout(0,8));
+        pnlChooser.add(new JLabel("Có thể chọn một hoặc nhiều danh mục."),BorderLayout.NORTH);
+        pnlChooser.add(scrList,BorderLayout.CENTER);
+        if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlChooser,"Chọn danh mục áp dụng",
                 JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return null;
         if(selected.isEmpty()){info("Hãy chọn ít nhất một danh mục áp dụng.");return null;}
         return new LinkedHashSet<Integer>(selected);
@@ -323,8 +323,8 @@ public class PromotionManagementPanel extends BaseScreenPanel {
         return out;
     }
     private void viewScope(){
-        int vr=table.getSelectedRow();if(vr<0){info("Hãy chọn chương trình cần xem.");return;}
-        int row=table.convertRowIndexToModel(vr);String promotionCode=String.valueOf(model.getValueAt(row,0));
+        int vr=tblPromotion.getSelectedRow();if(vr<0){info("Hãy chọn chương trình cần xem.");return;}
+        int row=tblPromotion.convertRowIndexToModel(vr);String promotionCode=String.valueOf(model.getValueAt(row,0));
         try{
             Object idValue=service.scalar("SELECT promotion_id FROM promotions WHERE promotion_code=?",promotionCode);
             if(idValue==null){info("Chương trình không còn tồn tại. Hãy làm mới danh sách.");refreshData();return;}
@@ -337,13 +337,13 @@ public class PromotionManagementPanel extends BaseScreenPanel {
                   + "OR EXISTS(SELECT 1 FROM promotion_categories pc WHERE pc.promotion_id=? AND pc.category_id=p.category_id) "
                   + "ORDER BY p.product_name",promotionId,promotionId))
                 m.addRow(new Object[]{r.get("product_id"),r.get("product_name"),r.get("category_name"),Formats.money(r.get("sale_price")),Formats.vi(r.get("status"))});
-            JTable t=UIFactory.table(m);JScrollPane sp=UIFactory.scroll(t);sp.setPreferredSize(new Dimension(760,320));
-            JOptionPane.showMessageDialog(DialogUtils.owner(this),sp,"Phạm vi áp dụng - "+model.getValueAt(row,0),JOptionPane.PLAIN_MESSAGE);
+            JTable tblScope=UIFactory.table(m);JScrollPane scrScope=UIFactory.scroll(tblScope);scrScope.setPreferredSize(new Dimension(760,320));
+            JOptionPane.showMessageDialog(DialogUtils.owner(this),scrScope,"Phạm vi áp dụng - "+model.getValueAt(row,0),JOptionPane.PLAIN_MESSAGE);
         }catch(Exception ex){showError(ex);}
     }
     private void endEarly(){
-        int vr=table.getSelectedRow();if(vr<0){info("Hãy chọn chương trình.");return;}
-        int r=table.convertRowIndexToModel(vr);
+        int vr=tblPromotion.getSelectedRow();if(vr<0){info("Hãy chọn chương trình.");return;}
+        int r=tblPromotion.convertRowIndexToModel(vr);
         String code=String.valueOf(model.getValueAt(r,0));
         String status=Formats.code(model.getValueAt(r,6));
         if(!"ACTIVE".equals(status) && !"SCHEDULED".equals(status)){info("Chỉ chương trình đang hoạt động hoặc đã lên lịch mới có thể kết thúc sớm.");return;}
@@ -361,8 +361,8 @@ public class PromotionManagementPanel extends BaseScreenPanel {
         }catch(Exception ex){showError(ex);}
     }
     private void deleteEndedPromotion(){
-        int vr=table.getSelectedRow();if(vr<0){info("Hãy chọn chương trình cần xóa.");return;}
-        int r=table.convertRowIndexToModel(vr);
+        int vr=tblPromotion.getSelectedRow();if(vr<0){info("Hãy chọn chương trình cần xóa.");return;}
+        int r=tblPromotion.convertRowIndexToModel(vr);
         String code=String.valueOf(model.getValueAt(r,0));
         String name=String.valueOf(model.getValueAt(r,1));
         String status=Formats.code(model.getValueAt(r,6));
