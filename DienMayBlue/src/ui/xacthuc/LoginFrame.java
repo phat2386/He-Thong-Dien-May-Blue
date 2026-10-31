@@ -1,386 +1,601 @@
 package ui.xacthuc;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
 import service.AuthService;
 import ui.chinh.MainFrame;
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import ui.dungchung.*;
+import ui.dungchung.AppIcon;
+import ui.dungchung.RoundedButton;
+import ui.dungchung.RoundedPanel;
+import ui.dungchung.UIConstants;
+
+/**
+ * Màn hình đăng nhập. Chia làm 2 phần:
+ * bên trái: logo và giới thiệu
+ * bên phải: form đăng nhập
+ */
 public class LoginFrame extends JFrame {
     private static final long serialVersionUID = 1L;
+
     private final JTextField txtUsername = new JTextField();
     private final JPasswordField txtPassword = new JPasswordField();
+    private final RoundedButton btnLogin = new RoundedButton(
+            "Đăng nhập", UIConstants.ORANGE, UIConstants.ORANGE_HOVER, 12);
+
     private final JLabel lblError = new JLabel(" ");
-    private final JPanel errorBox = new RoundedPanel(10, new Color(254,242,242));
-    private final JPanel sessionBanner = new RoundedPanel(12, new Color(255,251,235));
+    private final JPanel errorBox = new RoundedPanel(10, new Color(254, 242, 242));
+
+    private final JPanel sessionBanner = new RoundedPanel(12, new Color(255, 251, 235));
     private final JLabel sessionTitle = new JLabel("Phiên làm việc đã hết hạn");
-    private final JLabel sessionText = new JLabel("Bạn đã không hoạt động trong 15 phút. Vui lòng đăng nhập lại.");
-    private final RoundedButton btnLogin = new RoundedButton( "Đăng nhập", UIConstants.ORANGE, UIConstants.ORANGE_HOVER, 12);
+    private final JLabel sessionText = new JLabel(
+            "Bạn đã không hoạt động trong 15 phút. Vui lòng đăng nhập lại.");
+
     private final AuthService authService = new AuthService();
-    private boolean passwordVisible;
+    private boolean dangHienMatKhau = false;
+
     public LoginFrame() {
         setTitle("Điện Máy Blue - Đăng nhập");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1180,720));
-        setSize(1180,720);
+        setMinimumSize(new Dimension(1180, 720));
+        setSize(1180, 720);
         setResizable(false);
         setLocationRelativeTo(null);
         setBackground(Color.WHITE);
-        setContentPane(createRoot());
+
+        setContentPane(taoKhungChinh());
         getRootPane().setDefaultButton(btnLogin);
+
+       
         SwingUtilities.invokeLater(() -> txtUsername.requestFocusInWindow());
     }
-    private JPanel createRoot() {
-        JPanel root = new JPanel(new GridBagLayout());
-        root.setBackground(Color.WHITE);
-        GridBagConstraints left = new GridBagConstraints();
-        left.gridx=0; left.gridy=0; left.weightx=.40; left.weighty=1;
-        left.fill=GridBagConstraints.BOTH;
-        GridBagConstraints right = new GridBagConstraints();
-        right.gridx=1; right.gridy=0; right.weightx=.60; right.weighty=1;
-        right.fill=GridBagConstraints.BOTH;
-        root.add(createBrandPanel(), left);
-        root.add(createFormArea(), right);
-        return root;
+
+    private JPanel taoKhungChinh() {
+        JPanel khung = new JPanel(new GridBagLayout());
+        khung.setBackground(Color.WHITE);
+
+        GridBagConstraints trai = new GridBagConstraints();
+        trai.gridx = 0;
+        trai.gridy = 0;
+        trai.weightx = 0.40;
+        trai.weighty = 1;
+        trai.fill = GridBagConstraints.BOTH;
+
+        GridBagConstraints phai = new GridBagConstraints();
+        phai.gridx = 1;
+        phai.gridy = 0;
+        phai.weightx = 0.60;
+        phai.weighty = 1;
+        phai.fill = GridBagConstraints.BOTH;
+
+        khung.add(taoPhanGioiThieu(), trai);
+        khung.add(taoPhanDangNhap(), phai);
+        return khung;
     }
-    private JPanel createBrandPanel() {
+
+
+
+    private JPanel taoPhanGioiThieu() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(UIConstants.NAVY);
-        panel.setBorder(new EmptyBorder(34,34,34,34));
-        JPanel brand = new JPanel();
-        brand.setOpaque(false);
-        brand.setLayout(new BoxLayout(brand, BoxLayout.X_AXIS));
-        RoundedPanel logo = new RoundedPanel(12, UIConstants.ORANGE);
-        logo.setDrawBorder(false);
-        logo.setPreferredSize(new Dimension(36,36));
-        logo.setMinimumSize(new Dimension(36,36));
-        logo.setMaximumSize(new Dimension(36,36));
-        logo.setLayout(new GridBagLayout());
-        JLabel b = new JLabel("B");
-        b.setForeground(Color.WHITE);
-        b.setFont(UIConstants.font(Font.BOLD,16));
-        logo.add(b);
-        JLabel name = new JLabel("Điện Máy Blue");
-        name.setForeground(Color.WHITE);
-        name.setFont(UIConstants.font(Font.BOLD,15));
-        name.setBorder(new EmptyBorder(0,12,0,0));
-        brand.add(logo);
-        brand.add(name);
-        panel.add(brand,BorderLayout.NORTH);
-        JPanel hero = new JPanel();
-        hero.setOpaque(false);
-        hero.setLayout(new BoxLayout(hero,BoxLayout.Y_AXIS));
-        hero.add(Box.createVerticalGlue());
-        JLabel heading = new JLabel( "<html>Hệ thống quản lý<br>cửa hàng điện máy</html>");
-        heading.setForeground(Color.WHITE);
-        heading.setFont(UIConstants.font(Font.BOLD,31));
-        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hero.add(heading);
-        hero.add(Box.createVerticalStrut(18));
-        JLabel desc = new JLabel(
-                "<html><div style='width:300px'>Quản lý toàn diện từ bán hàng, kho hàng, khách hàng "
-              + "đến thống kê kinh doanh theo thời gian thực.</div></html>");
-        desc.setForeground(new Color(159,184,210));
-        desc.setFont(UIConstants.font(Font.PLAIN,15));
-        desc.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hero.add(desc);
-        hero.add(Box.createVerticalStrut(46));
-        JPanel metricWrap = new JPanel(new BorderLayout());
-        metricWrap.setOpaque(false);
-        metricWrap.setBorder(BorderFactory.createMatteBorder( 1,0,0,0,new Color(255,255,255,25)));
-        metricWrap.setMaximumSize(new Dimension(Integer.MAX_VALUE,110));
-        metricWrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JPanel metrics = new JPanel(new GridLayout(1,3,12,0));
-        metrics.setOpaque(false);
-        metrics.setBorder(new EmptyBorder(25,0,0,0));
-        metrics.add(metric("12.500+","Sản phẩm"));
-        metrics.add(metric("48.000+","Khách hàng"));
-        metrics.add(metric("320+","Nhân viên"));
-        metricWrap.add(metrics,BorderLayout.CENTER);
-        hero.add(metricWrap);
-        hero.add(Box.createVerticalGlue());
-        panel.add(hero,BorderLayout.CENTER);
-        JLabel footer = new JLabel("© 2025 Điện Máy Blue. Bảo lưu mọi quyền.");
-        footer.setForeground(new Color(107,137,168));
-        footer.setFont(UIConstants.font(Font.PLAIN,11));
-        panel.add(footer,BorderLayout.SOUTH);
+        panel.setBorder(new EmptyBorder(34, 34, 34, 34));
+
+        panel.add(taoLogo(), BorderLayout.NORTH);
+        panel.add(taoNoiDungGioiThieu(), BorderLayout.CENTER);
+
+        JLabel banQuyen = new JLabel("© 2025 Điện Máy Blue. Bảo lưu mọi quyền.");
+        banQuyen.setForeground(new Color(107, 137, 168));
+        banQuyen.setFont(UIConstants.font(Font.PLAIN, 11));
+        panel.add(banQuyen, BorderLayout.SOUTH);
         return panel;
     }
-    private JPanel metric(String number,String label) {
-        JPanel p=new JPanel();
-        p.setOpaque(false);
-        p.setLayout(new BoxLayout(p,BoxLayout.Y_AXIS));
-        JLabel n=new JLabel(number);
-        n.setForeground(UIConstants.ORANGE);
-        n.setFont(UIConstants.font(Font.BOLD,24));
-        JLabel l=new JLabel(label);
-        l.setForeground(new Color(112,151,189));
-        l.setFont(UIConstants.font(Font.PLAIN,12));
-        p.add(n);
-        p.add(Box.createVerticalStrut(3));
-        p.add(l);
-        return p;
+
+    /** Ô vuông cam có chữ B và tên cửa hàng. */
+    private JPanel taoLogo() {
+        RoundedPanel oVuong = new RoundedPanel(12, UIConstants.ORANGE);
+        oVuong.setDrawBorder(false);
+        oVuong.setPreferredSize(new Dimension(36, 36));
+        oVuong.setMinimumSize(new Dimension(36, 36));
+        oVuong.setMaximumSize(new Dimension(36, 36));
+        oVuong.setLayout(new GridBagLayout());
+
+        JLabel chuB = new JLabel("B");
+        chuB.setForeground(Color.WHITE);
+        chuB.setFont(UIConstants.font(Font.BOLD, 16));
+        oVuong.add(chuB);
+
+        JLabel tenCuaHang = new JLabel("Điện Máy Blue");
+        tenCuaHang.setForeground(Color.WHITE);
+        tenCuaHang.setFont(UIConstants.font(Font.BOLD, 15));
+        tenCuaHang.setBorder(new EmptyBorder(0, 12, 0, 0));
+
+        JPanel logo = new JPanel();
+        logo.setOpaque(false);
+        logo.setLayout(new BoxLayout(logo, BoxLayout.X_AXIS));
+        logo.add(oVuong);
+        logo.add(tenCuaHang);
+        return logo;
     }
-    private JPanel createFormArea() {
-        JPanel area=new JPanel(new GridBagLayout());
-        area.setBackground(Color.WHITE);
-        area.setBorder(new EmptyBorder(24,24,24,24));
-        JPanel form=new JPanel();
+
+    /** Dòng chữ lớn, mô tả và 3 số liệu ở giữa nửa bên trái. */
+    private JPanel taoNoiDungGioiThieu() {
+        JPanel noiDung = new JPanel();
+        noiDung.setOpaque(false);
+        noiDung.setLayout(new BoxLayout(noiDung, BoxLayout.Y_AXIS));
+        noiDung.add(Box.createVerticalGlue());
+
+        JLabel tieuDe = new JLabel("<html>Hệ thống quản lý<br>cửa hàng điện máy</html>");
+        tieuDe.setForeground(Color.WHITE);
+        tieuDe.setFont(UIConstants.font(Font.BOLD, 31));
+        tieuDe.setAlignmentX(Component.LEFT_ALIGNMENT);
+        noiDung.add(tieuDe);
+        noiDung.add(Box.createVerticalStrut(18));
+
+        JLabel moTa = new JLabel(
+                "<html><div style='width:300px'>Quản lý toàn diện từ bán hàng, kho hàng, khách hàng "
+                + "đến thống kê kinh doanh theo thời gian thực.</div></html>");
+        moTa.setForeground(new Color(159, 184, 210));
+        moTa.setFont(UIConstants.font(Font.PLAIN, 15));
+        moTa.setAlignmentX(Component.LEFT_ALIGNMENT);
+        noiDung.add(moTa);
+        noiDung.add(Box.createVerticalStrut(46));
+
+        noiDung.add(taoHangSoLieu());
+        noiDung.add(Box.createVerticalGlue());
+        return noiDung;
+    }
+
+    /** Hàng 3 số liệu: sản phẩm, khách hàng, nhân viên. */
+    private JPanel taoHangSoLieu() {
+        JPanel hang = new JPanel(new GridLayout(1, 3, 12, 0));
+        hang.setOpaque(false);
+        hang.setBorder(new EmptyBorder(25, 0, 0, 0));
+        hang.add(taoSoLieu("12.500+", "Sản phẩm"));
+        hang.add(taoSoLieu("48.000+", "Khách hàng"));
+        hang.add(taoSoLieu("320+", "Nhân viên"));
+
+        // Có đường kẻ mờ phía trên
+        JPanel khung = new JPanel(new BorderLayout());
+        khung.setOpaque(false);
+        khung.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(255, 255, 255, 25)));
+        khung.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        khung.setAlignmentX(Component.LEFT_ALIGNMENT);
+        khung.add(hang, BorderLayout.CENTER);
+        return khung;
+    }
+
+    private JPanel taoSoLieu(String so, String ten) {
+        JLabel lblSo = new JLabel(so);
+        lblSo.setForeground(UIConstants.ORANGE);
+        lblSo.setFont(UIConstants.font(Font.BOLD, 24));
+
+        JLabel lblTen = new JLabel(ten);
+        lblTen.setForeground(new Color(112, 151, 189));
+        lblTen.setFont(UIConstants.font(Font.PLAIN, 12));
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(lblSo);
+        panel.add(Box.createVerticalStrut(3));
+        panel.add(lblTen);
+        return panel;
+    }
+
+    // =====================================================================
+    // 3. Nửa bên phải: form đăng nhập
+    // =====================================================================
+
+    private JPanel taoPhanDangNhap() {
+        JPanel form = new JPanel();
         form.setOpaque(false);
-        form.setPreferredSize(new Dimension(360,610));
-        form.setMaximumSize(new Dimension(360,Integer.MAX_VALUE));
-        form.setLayout(new BoxLayout(form,BoxLayout.Y_AXIS));
-        sessionBanner.setVisible(false);
-        sessionBanner.setLayout(new BorderLayout(10,0));
-        sessionBanner.setBorder(new EmptyBorder(12,13,12,13));
-        JLabel clock=new JLabel("◷");
-        clock.setForeground(new Color(245,158,11));
-        clock.setFont(UIConstants.font(Font.BOLD,17));
-        sessionTitle.setFont(UIConstants.font(Font.BOLD,12));
-        sessionTitle.setForeground(new Color(146,64,14));
-        sessionText.setFont(UIConstants.font(Font.PLAIN,11));
-        sessionText.setForeground(new Color(180,83,9));
-        JPanel sesTxt=new JPanel();
-        sesTxt.setOpaque(false);
-        sesTxt.setLayout(new BoxLayout(sesTxt,BoxLayout.Y_AXIS));
-        sesTxt.add(sessionTitle); sesTxt.add(Box.createVerticalStrut(2)); sesTxt.add(sessionText);
-        sessionBanner.add(clock,BorderLayout.WEST);
-        sessionBanner.add(sesTxt,BorderLayout.CENTER);
-        sessionBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE,74));
+        form.setPreferredSize(new Dimension(360, 610));
+        form.setMaximumSize(new Dimension(360, Integer.MAX_VALUE));
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+
         form.add(Box.createVerticalGlue());
-        form.add(sessionBanner);
+
+        // Báo hết phiên (mặc định ẩn)
+        form.add(taoKhungHetPhien());
         form.add(Box.createVerticalStrut(18));
-        JLabel title=new JLabel("Đăng nhập");
-        title.setFont(UIConstants.font(Font.BOLD,26));
-        title.setForeground(UIConstants.TEXT);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(title);
+
+        // Tiêu đề
+        JLabel tieuDe = new JLabel("Đăng nhập");
+        tieuDe.setFont(UIConstants.font(Font.BOLD, 26));
+        tieuDe.setForeground(UIConstants.TEXT);
+        tieuDe.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(tieuDe);
         form.add(Box.createVerticalStrut(5));
-        JLabel subtitle=new JLabel("Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.");
-        subtitle.setFont(UIConstants.font(Font.PLAIN,13));
-        subtitle.setForeground(UIConstants.MUTED_LIGHT);
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(subtitle);
+
+        JLabel phuDe = new JLabel("Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.");
+        phuDe.setFont(UIConstants.font(Font.PLAIN, 13));
+        phuDe.setForeground(UIConstants.MUTED_LIGHT);
+        phuDe.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(phuDe);
         form.add(Box.createVerticalStrut(25));
-        JLabel userLabel=label("Tên đăng nhập");
-        form.add(userLabel);
+
+        // Ô tên đăng nhập
+        form.add(taoNhan("Tên đăng nhập"));
         form.add(Box.createVerticalStrut(7));
-        form.add(inputShell(txtUsername,"user",null));
+        form.add(taoONhap(txtUsername, "user", false));
         form.add(Box.createVerticalStrut(16));
-        JLabel passLabel=label("Mật khẩu");
-        form.add(passLabel);
+
+        // Ô mật khẩu (có nút con mắt để hiện / ẩn)
+        form.add(taoNhan("Mật khẩu"));
         form.add(Box.createVerticalStrut(7));
-        form.add(inputShell(txtPassword,null,this::togglePassword));
+        form.add(taoONhap(txtPassword, null, true));
         form.add(Box.createVerticalStrut(14));
-        errorBox.setVisible(false);
-        errorBox.setLayout(new BorderLayout(8,0));
-        errorBox.setBorder(new EmptyBorder(10,11,10,11));
-        JLabel errorIcon=new JLabel("!");
-        errorIcon.setHorizontalAlignment(SwingConstants.CENTER);
-        errorIcon.setForeground(Color.WHITE);
-        errorIcon.setOpaque(true);
-        errorIcon.setBackground(new Color(239,68,68));
-        errorIcon.setFont(UIConstants.font(Font.BOLD,11));
-        errorIcon.setPreferredSize(new Dimension(18,18));
-        lblError.setFont(UIConstants.font(Font.PLAIN,11));
-        lblError.setForeground(new Color(220,38,38));
-        errorBox.add(errorIcon,BorderLayout.WEST);
-        errorBox.add(lblError,BorderLayout.CENTER);
-        errorBox.setMaximumSize(new Dimension(Integer.MAX_VALUE,52));
-        form.add(errorBox);
+
+        // Khung báo lỗi (mặc định ẩn)
+        form.add(taoKhungLoi());
         form.add(Box.createVerticalStrut(14));
+
+        // Nút đăng nhập
         btnLogin.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btnLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE,44));
-        btnLogin.setPreferredSize(new Dimension(360,44));
-        btnLogin.addActionListener(e->login());
+        btnLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        btnLogin.setPreferredSize(new Dimension(360, 44));
+        btnLogin.addActionListener(e -> dangNhap());
         form.add(btnLogin);
         form.add(Box.createVerticalStrut(16));
-        JLabel support=new JLabel(
+
+        // Dòng hỗ trợ
+        JLabel hoTro = new JLabel(
                 "<html><div style='text-align:center'>Gặp sự cố? Liên hệ "
-              + "<b><font color='#0f2744'>Bộ phận kỹ thuật</font></b></div></html>", SwingConstants.CENTER);
-        support.setFont(UIConstants.font(Font.PLAIN,12));
-        support.setForeground(UIConstants.MUTED_LIGHT);
-        support.setAlignmentX(Component.CENTER_ALIGNMENT);
-        support.setMaximumSize(new Dimension(Integer.MAX_VALUE,26));
-        form.add(support);
+                + "<b><font color='#0f2744'>Bộ phận kỹ thuật</font></b></div></html>",
+                SwingConstants.CENTER);
+        hoTro.setFont(UIConstants.font(Font.PLAIN, 12));
+        hoTro.setForeground(UIConstants.MUTED_LIGHT);
+        hoTro.setAlignmentX(Component.CENTER_ALIGNMENT);
+        hoTro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        form.add(hoTro);
         form.add(Box.createVerticalStrut(22));
-        form.add(createDemoPanel());
+
+        // Bảng tài khoản mẫu
+        form.add(taoBangTaiKhoanMau());
         form.add(Box.createVerticalGlue());
-        GridBagConstraints gbc=new GridBagConstraints();
-        gbc.gridx=0; gbc.gridy=0; gbc.weightx=1; gbc.weighty=1;
-        gbc.anchor=GridBagConstraints.CENTER;
-        area.add(form,gbc);
-        return area;
+
+        // Đặt form vào giữa nửa bên phải
+        JPanel vung = new JPanel(new GridBagLayout());
+        vung.setBackground(Color.WHITE);
+        vung.setBorder(new EmptyBorder(24, 24, 24, 24));
+
+        GridBagConstraints giua = new GridBagConstraints();
+        giua.gridx = 0;
+        giua.gridy = 0;
+        giua.weightx = 1;
+        giua.weighty = 1;
+        giua.anchor = GridBagConstraints.CENTER;
+        vung.add(form, giua);
+        return vung;
     }
-    private JLabel label(String text) {
-        JLabel l=new JLabel(text);
-        l.setFont(UIConstants.font(Font.BOLD,13));
-        l.setForeground(UIConstants.TEXT);
-        l.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return l;
+
+    /** Khung vàng báo "phiên làm việc đã hết hạn" (ẩn cho tới khi gọi showSessionMessage). */
+    private JPanel taoKhungHetPhien() {
+        JLabel bieuTuong = new JLabel("◷");
+        bieuTuong.setForeground(new Color(245, 158, 11));
+        bieuTuong.setFont(UIConstants.font(Font.BOLD, 17));
+
+        sessionTitle.setFont(UIConstants.font(Font.BOLD, 12));
+        sessionTitle.setForeground(new Color(146, 64, 14));
+        sessionText.setFont(UIConstants.font(Font.PLAIN, 11));
+        sessionText.setForeground(new Color(180, 83, 9));
+
+        JPanel chu = new JPanel();
+        chu.setOpaque(false);
+        chu.setLayout(new BoxLayout(chu, BoxLayout.Y_AXIS));
+        chu.add(sessionTitle);
+        chu.add(Box.createVerticalStrut(2));
+        chu.add(sessionText);
+
+        sessionBanner.setVisible(false);
+        sessionBanner.setLayout(new BorderLayout(10, 0));
+        sessionBanner.setBorder(new EmptyBorder(12, 13, 12, 13));
+        sessionBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 74));
+        sessionBanner.add(bieuTuong, BorderLayout.WEST);
+        sessionBanner.add(chu, BorderLayout.CENTER);
+        return sessionBanner;
     }
-    private JPanel inputShell(JTextField field,String iconKind,Runnable trailingAction) {
-        final Color normalBorder = new Color(203,213,225);
-        RoundedPanel shell=new RoundedPanel(9,UIConstants.INPUT_BG);
-        shell.setBorderColor(normalBorder);
-        shell.setLayout(new BorderLayout());
-        shell.setMaximumSize(new Dimension(Integer.MAX_VALUE,46));
-        shell.setPreferredSize(new Dimension(360,46));
-        shell.setAlignmentX(Component.LEFT_ALIGNMENT);
-        if(iconKind!=null){
-            JLabel icon=new JLabel(new AppIcon(iconKind,16,UIConstants.MUTED));
-            icon.setBorder(new EmptyBorder(0,12,0,8));
-            shell.add(icon,BorderLayout.WEST);
+
+    /** Khung đỏ nhạt có dấu "!" để hiện lỗi đăng nhập (ẩn cho tới khi có lỗi). */
+    private JPanel taoKhungLoi() {
+        JLabel dauChamThan = new JLabel("!");
+        dauChamThan.setHorizontalAlignment(SwingConstants.CENTER);
+        dauChamThan.setForeground(Color.WHITE);
+        dauChamThan.setOpaque(true);
+        dauChamThan.setBackground(new Color(239, 68, 68));
+        dauChamThan.setFont(UIConstants.font(Font.BOLD, 11));
+        dauChamThan.setPreferredSize(new Dimension(18, 18));
+
+        lblError.setFont(UIConstants.font(Font.PLAIN, 11));
+        lblError.setForeground(new Color(220, 38, 38));
+
+        errorBox.setVisible(false);
+        errorBox.setLayout(new BorderLayout(8, 0));
+        errorBox.setBorder(new EmptyBorder(10, 11, 10, 11));
+        errorBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+        errorBox.add(dauChamThan, BorderLayout.WEST);
+        errorBox.add(lblError, BorderLayout.CENTER);
+        return errorBox;
+    }
+
+    private JLabel taoNhan(String chu) {
+        JLabel nhan = new JLabel(chu);
+        nhan.setFont(UIConstants.font(Font.BOLD, 13));
+        nhan.setForeground(UIConstants.TEXT);
+        nhan.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return nhan;
+    }
+
+    /**
+     * Ô nhập có viền bo tròn.
+     * - tenIcon: biểu tượng bên trái (null thì không có)
+     * - coNutXemMatKhau: true thì thêm nút con mắt bên phải
+     * Viền đổi sang màu cam khi ô đang được chọn; nhấn Enter hoặc gõ chữ thì xóa thông báo lỗi.
+     */
+    private JPanel taoONhap(JTextField oNhap, String tenIcon, boolean coNutXemMatKhau) {
+        final Color mauVienThuong = new Color(203, 213, 225);
+
+        RoundedPanel vien = new RoundedPanel(9, UIConstants.INPUT_BG);
+        vien.setBorderColor(mauVienThuong);
+        vien.setLayout(new BorderLayout());
+        vien.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        vien.setPreferredSize(new Dimension(360, 46));
+        vien.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        if (tenIcon != null) {
+            JLabel icon = new JLabel(new AppIcon(tenIcon, 16, UIConstants.MUTED));
+            icon.setBorder(new EmptyBorder(0, 12, 0, 8));
+            vien.add(icon, BorderLayout.WEST);
         }
-        field.setBorder(new EmptyBorder(0, iconKind==null?12:0,0,0));
-        field.setFont(UIConstants.font(Font.PLAIN,14));
-        field.setForeground(UIConstants.TEXT);
-        field.setCaretColor(UIConstants.TEXT);
-        field.setBackground(UIConstants.INPUT_BG);
-        field.setOpaque(false);
-        field.setPreferredSize(new Dimension(300,44));
-        shell.add(field,BorderLayout.CENTER);
-        if(trailingAction!=null){
-            JButton eye=new JButton(new AppIcon("eye",16,UIConstants.MUTED));
-            eye.setPreferredSize(new Dimension(42,44));
-            eye.setBorderPainted(false);
-            eye.setContentAreaFilled(false);
-            eye.setFocusPainted(false);
-            eye.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            eye.addActionListener(e->trailingAction.run());
-            shell.add(eye,BorderLayout.EAST);
+
+        oNhap.setBorder(new EmptyBorder(0, tenIcon == null ? 12 : 0, 0, 0));
+        oNhap.setFont(UIConstants.font(Font.PLAIN, 14));
+        oNhap.setForeground(UIConstants.TEXT);
+        oNhap.setCaretColor(UIConstants.TEXT);
+        oNhap.setBackground(UIConstants.INPUT_BG);
+        oNhap.setOpaque(false);
+        oNhap.setPreferredSize(new Dimension(300, 44));
+        vien.add(oNhap, BorderLayout.CENTER);
+
+        if (coNutXemMatKhau) {
+            JButton nutMat = new JButton(new AppIcon("eye", 16, UIConstants.MUTED));
+            nutMat.setPreferredSize(new Dimension(42, 44));
+            nutMat.setBorderPainted(false);
+            nutMat.setContentAreaFilled(false);
+            nutMat.setFocusPainted(false);
+            nutMat.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            nutMat.addActionListener(e -> doiHienMatKhau());
+            vien.add(nutMat, BorderLayout.EAST);
         }
-        field.addFocusListener(new FocusAdapter(){
-            @Override public void focusGained(FocusEvent e){
-                shell.setBorderColor(UIConstants.ORANGE);
-                shell.setFillColor(Color.WHITE);
+
+        // Ô được chọn thì viền cam, nền trắng; rời ô thì trả về như cũ
+        oNhap.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                vien.setBorderColor(UIConstants.ORANGE);
+                vien.setFillColor(Color.WHITE);
             }
-            @Override public void focusLost(FocusEvent e){
-                shell.setBorderColor(normalBorder);
-                shell.setFillColor(UIConstants.INPUT_BG);
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                vien.setBorderColor(mauVienThuong);
+                vien.setFillColor(UIConstants.INPUT_BG);
             }
         });
-        field.addActionListener(e->login());
-        field.addKeyListener(new KeyAdapter(){
-            @Override public void keyTyped(KeyEvent e){ clearError(); }
+
+        oNhap.addActionListener(e -> dangNhap());
+        oNhap.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                clearError();
+            }
         });
-        return shell;
+        return vien;
     }
-    private JPanel createDemoPanel() {
-        RoundedPanel panel=new RoundedPanel(12,UIConstants.INPUT_BG);
-        panel.setBorderColor(new Color(241,245,249));
-        panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(13,14,13,14));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE,205));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel title=new JLabel("TÀI KHOẢN MẪU — NHẤN ĐỂ ĐIỀN NHANH", SwingConstants.CENTER);
-        title.setFont(UIConstants.font(Font.BOLD,10));
-        title.setForeground(UIConstants.MUTED);
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        title.setMaximumSize(new Dimension(Integer.MAX_VALUE,20));
-        panel.add(title);
-        panel.add(Box.createVerticalStrut(9));
-        panel.add(demoRow("Admin","admin","Admin@1234"));
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(demoRow("Quản lý","admin01","Admin@123"));
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(demoRow("Bán hàng","sale01","Sale@1234"));
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(demoRow("CSKH","cskh01","Cskh@1234"));
-        return panel;
+
+    // =====================================================================
+    // 4. Bảng tài khoản mẫu (bấm vào dòng nào thì điền sẵn vào form)
+    // =====================================================================
+
+    private JPanel taoBangTaiKhoanMau() {
+        JLabel tieuDe = new JLabel("TÀI KHOẢN MẪU — NHẤN ĐỂ ĐIỀN NHANH", SwingConstants.CENTER);
+        tieuDe.setFont(UIConstants.font(Font.BOLD, 10));
+        tieuDe.setForeground(UIConstants.MUTED);
+        tieuDe.setAlignmentX(Component.CENTER_ALIGNMENT);
+        tieuDe.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+
+        RoundedPanel bang = new RoundedPanel(12, UIConstants.INPUT_BG);
+        bang.setBorderColor(new Color(241, 245, 249));
+        bang.setLayout(new BoxLayout(bang, BoxLayout.Y_AXIS));
+        bang.setBorder(new EmptyBorder(13, 14, 13, 14));
+        bang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 205));
+        bang.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        bang.add(tieuDe);
+        bang.add(Box.createVerticalStrut(9));
+        bang.add(taoDongTaiKhoanMau("Admin", "admin", "Admin@1234"));
+        bang.add(Box.createVerticalStrut(5));
+        bang.add(taoDongTaiKhoanMau("Quản lý", "admin01", "Admin@123"));
+        bang.add(Box.createVerticalStrut(5));
+        bang.add(taoDongTaiKhoanMau("Bán hàng", "sale01", "Sale@1234"));
+        bang.add(Box.createVerticalStrut(5));
+        bang.add(taoDongTaiKhoanMau("CSKH", "cskh01", "Cskh@1234"));
+        return bang;
     }
-    private JPanel demoRow(String role,String username,String password) {
-        RoundedPanel row=new RoundedPanel(9,Color.WHITE);
-        row.setBorderColor(UIConstants.BORDER);
-        row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(7,10,7,10));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
-        row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        JLabel roleLabel=new JLabel(role);
-        roleLabel.setFont(UIConstants.font(Font.BOLD,11));
-        roleLabel.setForeground(new Color(51,65,85));
-        JLabel userLabel=new JLabel(username);
-        userLabel.setFont(new Font("Monospaced",Font.PLAIN,10));
-        userLabel.setForeground(UIConstants.MUTED_LIGHT);
-        JLabel passwordLabel=new JLabel(password);
-        passwordLabel.setFont(new Font("Monospaced",Font.PLAIN,10));
-        passwordLabel.setForeground(UIConstants.MUTED_LIGHT);
-        JPanel credentials=new JPanel(new GridLayout(1,2,14,0));
-        credentials.setOpaque(false);
-        userLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        passwordLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        credentials.add(userLabel);
-        credentials.add(passwordLabel);
-        row.add(roleLabel,BorderLayout.WEST);
-        row.add(credentials,BorderLayout.EAST);
-        MouseAdapter click=new MouseAdapter(){
-            @Override public void mouseClicked(MouseEvent e){
-                setCredentials(username,password);
+
+    /** Một dòng tài khoản mẫu: đưa chuột vào thì đổi màu, bấm vào thì điền form. */
+    private JPanel taoDongTaiKhoanMau(String vaiTro, String tenDangNhap, String matKhau) {
+        final Color mauChuThuong = new Color(51, 65, 85);
+        final Color mauChuNenToi = new Color(203, 213, 225);
+
+        JLabel lblVaiTro = new JLabel(vaiTro);
+        lblVaiTro.setFont(UIConstants.font(Font.BOLD, 11));
+        lblVaiTro.setForeground(mauChuThuong);
+
+        JLabel lblTenDangNhap = new JLabel(tenDangNhap);
+        lblTenDangNhap.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        lblTenDangNhap.setForeground(UIConstants.MUTED_LIGHT);
+        lblTenDangNhap.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JLabel lblMatKhau = new JLabel(matKhau);
+        lblMatKhau.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        lblMatKhau.setForeground(UIConstants.MUTED_LIGHT);
+        lblMatKhau.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JPanel phanTaiKhoan = new JPanel(new GridLayout(1, 2, 14, 0));
+        phanTaiKhoan.setOpaque(false);
+        phanTaiKhoan.add(lblTenDangNhap);
+        phanTaiKhoan.add(lblMatKhau);
+
+        RoundedPanel dong = new RoundedPanel(9, Color.WHITE);
+        dong.setBorderColor(UIConstants.BORDER);
+        dong.setLayout(new BorderLayout());
+        dong.setBorder(new EmptyBorder(7, 10, 7, 10));
+        dong.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        dong.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        dong.add(lblVaiTro, BorderLayout.WEST);
+        dong.add(phanTaiKhoan, BorderLayout.EAST);
+
+        MouseAdapter xuLyChuot = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                setCredentials(tenDangNhap, matKhau);
             }
-            @Override public void mouseEntered(MouseEvent e){
-                row.setFillColor(UIConstants.NAVY);
-                roleLabel.setForeground(Color.WHITE);
-                userLabel.setForeground(new Color(203,213,225));
-                passwordLabel.setForeground(new Color(203,213,225));
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                dong.setFillColor(UIConstants.NAVY);
+                lblVaiTro.setForeground(Color.WHITE);
+                lblTenDangNhap.setForeground(mauChuNenToi);
+                lblMatKhau.setForeground(mauChuNenToi);
             }
-            @Override public void mouseExited(MouseEvent e){
-                row.setFillColor(Color.WHITE);
-                roleLabel.setForeground(new Color(51,65,85));
-                userLabel.setForeground(UIConstants.MUTED_LIGHT);
-                passwordLabel.setForeground(UIConstants.MUTED_LIGHT);
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                dong.setFillColor(Color.WHITE);
+                lblVaiTro.setForeground(mauChuThuong);
+                lblTenDangNhap.setForeground(UIConstants.MUTED_LIGHT);
+                lblMatKhau.setForeground(UIConstants.MUTED_LIGHT);
             }
         };
-        row.addMouseListener(click);
-        roleLabel.addMouseListener(click);
-        userLabel.addMouseListener(click);
-        return row;
+        dong.addMouseListener(xuLyChuot);
+        lblVaiTro.addMouseListener(xuLyChuot);
+        lblTenDangNhap.addMouseListener(xuLyChuot);
+        return dong;
     }
-    private void togglePassword(){
-        passwordVisible=!passwordVisible;
-        txtPassword.setEchoChar(passwordVisible?(char)0:'•');
+
+    // =====================================================================
+    // 5. Các hàm công khai (màn hình khác cũng gọi tới)
+    // =====================================================================
+
+    public String getUsername() {
+        return txtUsername.getText();
     }
-    public String getUsername(){ return txtUsername.getText(); }
-    public String getPassword(){ return new String(txtPassword.getPassword()); }
-    public void clearPassword(){
+
+    public String getPassword() {
+        return new String(txtPassword.getPassword());
+    }
+
+    /** Xóa ô mật khẩu và đặt con trỏ vào đó. */
+    public void clearPassword() {
         txtPassword.setText("");
         txtPassword.requestFocusInWindow();
     }
-    public void setCredentials(String username,String password){
+
+    /** Điền sẵn tên đăng nhập và mật khẩu (dùng cho bảng tài khoản mẫu). */
+    public void setCredentials(String username, String password) {
         txtUsername.setText(username);
         txtPassword.setText(password);
         clearError();
         txtPassword.requestFocusInWindow();
     }
-    public void showError(String message){
-        lblError.setText("<html>"+message+"</html>");
+
+    public void showError(String message) {
+        lblError.setText("<html>" + message + "</html>");
         errorBox.setVisible(true);
         revalidate();
         repaint();
     }
-    public void clearError(){
+
+    public void clearError() {
         lblError.setText(" ");
         errorBox.setVisible(false);
         revalidate();
         repaint();
     }
-    public void showSessionMessage(String message){
-        sessionText.setText("<html>"+message+"</html>");
+
+    /** Hiện khung vàng với nội dung thông báo (ví dụ: hết phiên đăng nhập). */
+    public void showSessionMessage(String message) {
+        sessionText.setText("<html>" + message + "</html>");
         sessionBanner.setVisible(true);
         revalidate();
         repaint();
     }
-    private void login() {
-        AuthService.LoginResult result = authService.login(getUsername(), getPassword());
-        if (!result.isSuccess()) { showError(result.getMessage()); clearPassword(); return; }
-        clearError();
-        if (result.isRequiresPasswordChange()) {
-            ChangePasswordDialog dialog = new ChangePasswordDialog(this, authService, true, this::openMainFrame);
-            dialog.setVisible(true);
+
+    // =====================================================================
+    // 6. Xử lý đăng nhập
+    // =====================================================================
+
+    private void doiHienMatKhau() {
+        dangHienMatKhau = !dangHienMatKhau;
+
+        if (dangHienMatKhau) {
+            txtPassword.setEchoChar((char) 0); // hiện chữ thật
+        } else {
+            txtPassword.setEchoChar('•'); // che bằng dấu chấm
+        }
+    }
+
+    private void dangNhap() {
+        AuthService.LoginResult ketQua = authService.login(getUsername(), getPassword());
+
+        // Sai: hiện lỗi và xóa ô mật khẩu
+        if (!ketQua.isSuccess()) {
+            showError(ketQua.getMessage());
+            clearPassword();
             return;
         }
-        openMainFrame();
+
+        clearError();
+
+        // Đăng nhập lần đầu: bắt đổi mật khẩu rồi mới vào hệ thống
+        if (ketQua.isRequiresPasswordChange()) {
+            ChangePasswordDialog hopThoai = new ChangePasswordDialog(
+                    this, authService, true, this::moManHinhChinh);
+            hopThoai.setVisible(true);
+            return;
+        }
+
+        moManHinhChinh();
     }
-    private void openMainFrame() {
+
+    private void moManHinhChinh() {
         dispose();
         new MainFrame(authService).setVisible(true);
     }

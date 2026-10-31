@@ -10,11 +10,11 @@ import util.Formats;
 import ui.dungchung.*;
 public class EmployeeManagementPanel extends BaseScreenPanel {
     private static final long serialVersionUID = 1L;
-    private final JTextField search = UIFactory.field(320);
-    private final JComboBox<String> status = UIFactory.combo(
+    private final JTextField txtSearch = UIFactory.field(320);
+    private final JComboBox<String> cmbStatus = UIFactory.combo(
             "Tất cả trạng thái", "Đang hoạt động", "Đã ngừng làm việc", "Đang nghỉ phép");
     private final DefaultTableModel model = UIFactory.readOnlyModel(new Object[]{"Mã NV", "Họ tên", "Số điện thoại", "Thư điện tử", "Phòng ban", "Ngày vào làm", "Trạng thái", "Tài khoản"});
-    private final JTable table = UIFactory.table(model);
+    private final JTable tblTable = UIFactory.table(model);
     private final EmployeeService service = new EmployeeService();
     public EmployeeManagementPanel() {
         super("Quản lý nhân viên", "Quản lý hồ sơ nhân viên; tài khoản và ca làm việc được xử lý tại các mục tương ứng.");
@@ -22,10 +22,10 @@ public class EmployeeManagementPanel extends BaseScreenPanel {
         JButton edit = UIFactory.secondaryButton("Cập nhật hồ sơ");
         JButton toggle = UIFactory.secondaryButton("Ngừng / Kích hoạt");
         actions.add(add); actions.add(edit); actions.add(toggle);
-        body.add(UIFactory.toolbar(new JLabel("Tìm"), search, new JLabel("Trạng thái"), status), BorderLayout.NORTH);
-        body.add(UIFactory.scroll(table), BorderLayout.CENTER);
-        search.addActionListener(e -> refreshData());
-        status.addActionListener(e -> refreshData());
+        body.add(UIFactory.toolbar(new JLabel("Tìm"), txtSearch, new JLabel("Trạng thái"), cmbStatus), BorderLayout.NORTH);
+        body.add(UIFactory.scroll(tblTable), BorderLayout.CENTER);
+        txtSearch.addActionListener(e -> refreshData());
+        cmbStatus.addActionListener(e -> refreshData());
         add.addActionListener(e -> createEmployee());
         edit.addActionListener(e -> editEmployee());
         toggle.addActionListener(e -> toggleStatus());
@@ -33,19 +33,13 @@ public class EmployeeManagementPanel extends BaseScreenPanel {
     }
     @Override public void refreshData() {
         try {
-            String kw = "%" + search.getText().trim() + "%";
-            String selected = String.valueOf(status.getSelectedItem());
+            String kw = "%" + txtSearch.getText().trim() + "%";
+            String selected = String.valueOf(cmbStatus.getSelectedItem());
             String code = null;
             if ("Đang hoạt động".equals(selected)) code = "ACTIVE";
             else if ("Đã ngừng làm việc".equals(selected)) code = "INACTIVE";
             else if ("Đang nghỉ phép".equals(selected)) code = "ON_LEAVE";
-            String sql = "SELECT e.employee_id,e.full_name,e.phone,e.email,e.department,e.join_date,e.status,"
-                    + "a.status account_status FROM employees e LEFT JOIN accounts a ON a.employee_id=e.employee_id "
-                    + "LEFT JOIN roles r ON r.role_id=a.role_id "
-                    + "WHERE ISNULL(r.role_code,'')<>'ADMIN' AND (e.employee_id LIKE ? OR e.full_name LIKE ? OR e.phone LIKE ? OR ISNULL(e.email,'') LIKE ?) "
-                    + (code == null ? "" : "AND e.status=? ") + "ORDER BY e.full_name";
-            java.util.List<Map<String,Object>> rows = code == null ? service.query(sql, kw, kw, kw, kw)
-                    : service.query(sql, kw, kw, kw, kw, code);
+            java.util.List<Map<String,Object>> rows = service.searchEmployees(kw, code);
             model.setRowCount(0);
             for (Map<String,Object> r : rows) {
                 model.addRow(new Object[]{
@@ -57,8 +51,8 @@ public class EmployeeManagementPanel extends BaseScreenPanel {
         } catch (Exception ex) { showError(ex); }
     }
     private String selectedEmployeeId() {
-        int vr = table.getSelectedRow();
-        return vr < 0 ? null : String.valueOf(model.getValueAt(table.convertRowIndexToModel(vr), 0));
+        int vr = tblTable.getSelectedRow();
+        return vr < 0 ? null : String.valueOf(model.getValueAt(tblTable.convertRowIndexToModel(vr), 0));
     }
     private void createEmployee() {
         JTextField id = UIFactory.field(180), name = UIFactory.field(260), phone = UIFactory.field(180),
@@ -79,7 +73,7 @@ public class EmployeeManagementPanel extends BaseScreenPanel {
         String id = selectedEmployeeId();
         if (id == null) { info("Hãy chọn nhân viên cần cập nhật."); return; }
         try {
-            Map<String,Object> r = service.one("SELECT * FROM employees WHERE employee_id=?", id);
+            Map<String,Object> r = service.findEmployee(id);
             JTextField name = UIFactory.field(260), phone = UIFactory.field(180), email = UIFactory.field(260),
                     dept = UIFactory.field(220), join = UIFactory.field(160);
             name.setText(Formats.safe(r.get("full_name"))); phone.setText(Formats.safe(r.get("phone")));
@@ -98,7 +92,7 @@ public class EmployeeManagementPanel extends BaseScreenPanel {
         String id = selectedEmployeeId();
         if (id == null) { info("Hãy chọn nhân viên."); return; }
         try {
-            String old = String.valueOf(service.scalar("SELECT status FROM employees WHERE employee_id=?", id));
+            String old = String.valueOf(service.employeeStatus(id));
             boolean activate = !"ACTIVE".equals(old);
             String message = activate
                     ? "Kích hoạt lại hồ sơ nhân viên? Tài khoản đăng nhập (nếu đang vô hiệu hóa) vẫn phải được kích hoạt riêng tại mục Quản lý tài khoản."
