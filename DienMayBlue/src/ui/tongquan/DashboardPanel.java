@@ -1,40 +1,19 @@
 package ui.tongquan;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.util.Collections;
-import java.util.Map;
-
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.SwingUtilities;
+import service.SalesService;
+import java.awt.*;
+import java.util.*;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-
-import app.RoundedPanel;
-import app.UIConstants;
-import ui.dungchung.BaseScreenPanel;
-import ui.dungchung.UIFactory;
 import util.Formats;
+import ui.dungchung.*;
 
-public class DashBoardPanel extends BaseScreenPanel {
+public class DashboardPanel extends BaseScreenPanel {
 	
 	private static final long serialVersionUID=1L;
 	
 	private final SalesService service = new SalesService();
-	private final JPanel cardsContainer = new JPanel(new GridLayout(1,6,16,0));
+	private final JPanel cardsContainer = new JPanel(new GridLayout(1,4,16,0));
 	private final RevenueChart revenueChart = new RevenueChart();
 	private final JPanel categoryListPanel = new JPanel();
 	
@@ -44,7 +23,7 @@ public class DashBoardPanel extends BaseScreenPanel {
 	
 	private final JTable recentTable = UIFactory.table(recentTableModel);
 	
-	public DashBoardPanel() {
+	public DashboardPanel() {
 	    super("Trang Chủ", "Cập nhật tình hình hoạt động");
 	    initLayout();
 	    refreshData();
@@ -55,7 +34,7 @@ public class DashBoardPanel extends BaseScreenPanel {
 		cardsContainer.setPreferredSize(new Dimension(100,118));
 		
 		JPanel middleSection = createMiddleSection();
-		JPanel recentSection = createRecentSection();
+		JPanel recentSection = createRecentOrderSection();
 		
 		JPanel centerPanel = new JPanel(new BorderLayout(0, 16));
         centerPanel.setOpaque(false);
@@ -65,13 +44,6 @@ public class DashBoardPanel extends BaseScreenPanel {
         body.add(cardsContainer,BorderLayout.NORTH);
         body.add(centerPanel,BorderLayout.CENTER);
         
-	}
-
-	private JPanel createRecentSection() {
-		 JPanel panel = new JPanel(new BorderLayout());
-		    panel.add(recentTable.getTableHeader(), BorderLayout.NORTH);
-		    panel.add(recentTable, BorderLayout.CENTER);
-		    return panel;
 	}
 
 	private JPanel createMiddleSection() {
@@ -123,32 +95,21 @@ public class DashBoardPanel extends BaseScreenPanel {
         
         return middleGrid;
     }
-	
+
 	private JPanel createRecentOrderSection() {
-        RoundedPanel recentCard = new RoundedPanel(14, Color.WHITE);
-        recentCard.setLayout(new BorderLayout());
-        recentCard.setBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0));
-        
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
-        headerPanel.setBorder(new javax.swing.border.EmptyBorder(12, 16, 11, 16));
-        
-        JLabel titleTable = new JLabel("Đơn hàng gần đây");
-        titleTable.setFont(UIConstants.font(Font.BOLD, 13));
-        titleTable.setForeground(UIConstants.TEXT);
-        
-        JLabel linkMore = new JLabel("Xem tất cả →");
-        linkMore.setFont(UIConstants.font(Font.BOLD, 10));
-        linkMore.setForeground(UIConstants.ORANGE);
-        
-        headerPanel.add(titleTable, BorderLayout.WEST);
-        headerPanel.add(linkMore, BorderLayout.EAST);
-        
-        recentCard.add(headerPanel, BorderLayout.NORTH);
-        recentCard.add(UIFactory.scroll(recentTable), BorderLayout.CENTER);
-        
-        return recentCard;
-    }
+	    RoundedPanel recentCard = new RoundedPanel(14, Color.WHITE);
+	    recentCard.setLayout(new BorderLayout());
+
+	    JLabel title = new JLabel("Đơn hàng gần đây");
+	    title.setFont(UIConstants.font(Font.BOLD, 13));
+	    title.setForeground(UIConstants.TEXT);
+	    title.setBorder(new javax.swing.border.EmptyBorder(12, 16, 11, 16));
+
+	    recentCard.add(title, BorderLayout.NORTH);
+	    recentCard.add(UIFactory.scroll(recentTable), BorderLayout.CENTER);
+
+	    return recentCard;
+	}
 
 	@Override
 	public void refreshData() {
@@ -224,9 +185,10 @@ public class DashBoardPanel extends BaseScreenPanel {
                 });
             }
             
-            revalidate();
-            repaint();
-        } catch (Exception ex) {
+            body.revalidate();
+            body.repaint();
+        }catch (Exception ex) {
+            ex.printStackTrace();
             showError(ex);
         }
 	}
@@ -355,4 +317,15 @@ public class DashBoardPanel extends BaseScreenPanel {
         }
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame f = new JFrame("Dashboard Tổng Quan");
+            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            f.setContentPane(new DashboardPanel());
+            f.setMinimumSize(new Dimension(1000, 680));
+            f.setSize(1260, 780);
+            f.setLocationRelativeTo(null);
+            f.setVisible(true);
+        });
+    }
 }

@@ -18,33 +18,33 @@ public class AfterSalesPanel extends BaseScreenPanel {
     private final Section section;
     private final CustomerService service=new CustomerService();
     private final DefaultTableModel warrantyModel=UIFactory.readOnlyModel(new Object[]{"Mã BH","Khách hàng","Sản phẩm","Ngày nhận","Hạn BH","Vấn đề","Trạng thái","Phí đổi máy"});
-    private final JTable warrantyTable=UIFactory.table(warrantyModel);
+    private final JTable tblWarrantyTable=UIFactory.table(warrantyModel);
     private final DefaultTableModel complaintModel=UIFactory.readOnlyModel(new Object[]{"Mã KN","Khách hàng/SĐT","Nội dung","Ưu tiên","Trạng thái","Phụ trách","Hạn xử lý","Leo thang"});
-    private final JTable complaintTable=UIFactory.table(complaintModel);
+    private final JTable tblComplaintTable=UIFactory.table(complaintModel);
     public AfterSalesPanel(Section section){
         super(section == Section.WARRANTY ? "Bảo hành" : "Khiếu nại",
               section == Section.WARRANTY ? "Tiếp nhận và theo dõi phiếu bảo hành." : "Tiếp nhận và xử lý khiếu nại khách hàng.");
         this.section = section;
-        JButton newWarranty=UIFactory.primaryButton("+ Tiếp nhận bảo hành");
-        JButton updateWarranty=UIFactory.secondaryButton("Theo dõi / cập nhật");
-        JButton newComplaint=UIFactory.primaryButton("+ Tiếp nhận khiếu nại");
-        JButton updateComplaint=UIFactory.secondaryButton("Xử lý khiếu nại");
-        JButton refresh=UIFactory.secondaryButton("Làm mới");
+        JButton btnNewWarranty=UIFactory.primaryButton("+ Tiếp nhận bảo hành");
+        JButton btnUpdateWarranty=UIFactory.secondaryButton("Theo dõi / cập nhật");
+        JButton btnNewComplaint=UIFactory.primaryButton("+ Tiếp nhận khiếu nại");
+        JButton btnUpdateComplaint=UIFactory.secondaryButton("Xử lý khiếu nại");
+        JButton btnRefresh=UIFactory.secondaryButton("Làm mới");
         boolean warrantyAllowed=SessionManager.hasPermission("WARRANTY_MANAGE");
         boolean complaintAllowed=SessionManager.hasPermission("COMPLAINT_MANAGE");
         if(section == Section.WARRANTY && warrantyAllowed){
-            actions.add(newWarranty); actions.add(updateWarranty);
-            body.add(UIFactory.scroll(warrantyTable), BorderLayout.CENTER);
-            newWarranty.addActionListener(e->createWarranty());
-            updateWarranty.addActionListener(e->updateWarranty());
+            pnlActions.add(btnNewWarranty); pnlActions.add(btnUpdateWarranty);
+            pnlBody.add(UIFactory.scroll(tblWarrantyTable), BorderLayout.CENTER);
+            btnNewWarranty.addActionListener(e->createWarranty());
+            btnUpdateWarranty.addActionListener(e->updateWarranty());
         }else if(section == Section.COMPLAINT && complaintAllowed){
-            actions.add(newComplaint); actions.add(updateComplaint);
-            body.add(UIFactory.scroll(complaintTable), BorderLayout.CENTER);
-            newComplaint.addActionListener(e->createComplaint());
-            updateComplaint.addActionListener(e->updateComplaint());
+            pnlActions.add(btnNewComplaint); pnlActions.add(btnUpdateComplaint);
+            pnlBody.add(UIFactory.scroll(tblComplaintTable), BorderLayout.CENTER);
+            btnNewComplaint.addActionListener(e->createComplaint());
+            btnUpdateComplaint.addActionListener(e->updateComplaint());
         }
-        actions.add(refresh);
-        refresh.addActionListener(e->refreshData());
+        pnlActions.add(btnRefresh);
+        btnRefresh.addActionListener(e->refreshData());
         refreshData();
     }
     @Override public void refreshData(){
@@ -73,35 +73,35 @@ public class AfterSalesPanel extends BaseScreenPanel {
             if(phone.isEmpty()) throw new IllegalArgumentException("Vui lòng nhập số điện thoại khách hàng.");
             java.util.List<Map<String,Object>> rows=service.warrantyOptions(phone);
             if(rows.isEmpty()) throw new IllegalArgumentException("Không tìm thấy sản phẩm còn thời hạn bảo hành cho số điện thoại này.");
-            JComboBox<WarrantyOption> combo=new JComboBox<WarrantyOption>();
-            for(Map<String,Object> r:rows) combo.addItem(new WarrantyOption(r));
-            JTextArea issue=new JTextArea(4,30);issue.setLineWrap(true);issue.setWrapStyleWord(true);
-            JPanel p=new JPanel(new BorderLayout(8,8));
-            JPanel top=new JPanel(new GridLayout(0,2,8,8));
-            top.add(new JLabel("Sản phẩm đã mua"));top.add(combo);
-            top.add(new JLabel("Hạn bảo hành"));
-            JLabel endLabel=new JLabel();top.add(endLabel);
-            p.add(top,BorderLayout.NORTH);
-            JPanel issuePanel=new JPanel(new BorderLayout(6,6));
-            issuePanel.add(new JLabel("Mô tả lỗi"),BorderLayout.NORTH);issuePanel.add(new JScrollPane(issue),BorderLayout.CENTER);
-            p.add(issuePanel,BorderLayout.CENTER);
+            JComboBox<WarrantyOption> cmbCombo=new JComboBox<WarrantyOption>();
+            for(Map<String,Object> r:rows) cmbCombo.addItem(new WarrantyOption(r));
+            JTextArea txaIssue=new JTextArea(4,30);txaIssue.setLineWrap(true);txaIssue.setWrapStyleWord(true);
+            JPanel pnlP=new JPanel(new BorderLayout(8,8));
+            JPanel pnlTop=new JPanel(new GridLayout(0,2,8,8));
+            pnlTop.add(new JLabel("Sản phẩm đã mua"));pnlTop.add(cmbCombo);
+            pnlTop.add(new JLabel("Hạn bảo hành"));
+            JLabel lblEndLabel=new JLabel();pnlTop.add(lblEndLabel);
+            pnlP.add(pnlTop,BorderLayout.NORTH);
+            JPanel pnlIssuePanel=new JPanel(new BorderLayout(6,6));
+            pnlIssuePanel.add(new JLabel("Mô tả lỗi"),BorderLayout.NORTH);pnlIssuePanel.add(new JScrollPane(txaIssue),BorderLayout.CENTER);
+            pnlP.add(pnlIssuePanel,BorderLayout.CENTER);
             Runnable updateEnd=()->{
-                WarrantyOption o=(WarrantyOption)combo.getSelectedItem();
-                endLabel.setText(o==null?"":o.warrantyEnd.toString()+" ("+o.warrantyMonths+" tháng)");
+                WarrantyOption o=(WarrantyOption)cmbCombo.getSelectedItem();
+                lblEndLabel.setText(o==null?"":o.warrantyEnd.toString()+" ("+o.warrantyMonths+" tháng)");
             };
-            combo.addActionListener(e->updateEnd.run());updateEnd.run();
-            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),p,"Tiếp nhận bảo hành",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
-            WarrantyOption selected=(WarrantyOption)combo.getSelectedItem();
+            cmbCombo.addActionListener(e->updateEnd.run());updateEnd.run();
+            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlP,"Tiếp nhận bảo hành",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
+            WarrantyOption selected=(WarrantyOption)cmbCombo.getSelectedItem();
             if(selected==null)return;
-            String id=service.createWarranty(selected.customerId,selected.detailId,issue.getText().trim());
+            String id=service.createWarranty(selected.customerId,selected.detailId,txaIssue.getText().trim());
             info("Đã tạo phiếu bảo hành "+id+". Hạn bảo hành được hệ thống xác định tự động.");
             refreshData();
         }catch(Exception ex){showError(ex);}
     }
     private void updateWarranty(){
-        int vr=warrantyTable.getSelectedRow();
+        int vr=tblWarrantyTable.getSelectedRow();
         if(vr<0){info("Hãy chọn phiếu bảo hành.");return;}
-        int r=warrantyTable.convertRowIndexToModel(vr);
+        int r=tblWarrantyTable.convertRowIndexToModel(vr);
         String id=String.valueOf(warrantyModel.getValueAt(r,0));
         String oldCode=Formats.code(warrantyModel.getValueAt(r,6));
         String[] codes=warrantyNextStatuses(oldCode);
@@ -133,22 +133,22 @@ public class AfterSalesPanel extends BaseScreenPanel {
     }
     private void createComplaint(){
         try{
-            JTextField phone=UIFactory.field(180);
-            JTextArea content=new JTextArea(5,32);content.setLineWrap(true);content.setWrapStyleWord(true);
-            JPanel p=new JPanel(new BorderLayout(8,8));
-            JPanel top=new JPanel(new GridLayout(1,2,8,8));top.add(new JLabel("Số điện thoại"));top.add(phone);p.add(top,BorderLayout.NORTH);
-            JPanel bodyP=new JPanel(new BorderLayout(6,6));bodyP.add(new JLabel("Nội dung khiếu nại"),BorderLayout.NORTH);bodyP.add(new JScrollPane(content),BorderLayout.CENTER);p.add(bodyP,BorderLayout.CENTER);
-            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),p,"Ghi nhận khiếu nại",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
-            String customerId=service.customerIdByPhone(phone.getText().trim());
-            String id=service.createComplaint(customerId,phone.getText().trim(),content.getText().trim());
+            JTextField txtPhone=UIFactory.field(180);
+            JTextArea txaContent=new JTextArea(5,32);txaContent.setLineWrap(true);txaContent.setWrapStyleWord(true);
+            JPanel pnlP=new JPanel(new BorderLayout(8,8));
+            JPanel pnlTop=new JPanel(new GridLayout(1,2,8,8));pnlTop.add(new JLabel("Số điện thoại"));pnlTop.add(txtPhone);pnlP.add(pnlTop,BorderLayout.NORTH);
+            JPanel pnlBodyP=new JPanel(new BorderLayout(6,6));pnlBodyP.add(new JLabel("Nội dung khiếu nại"),BorderLayout.NORTH);pnlBodyP.add(new JScrollPane(txaContent),BorderLayout.CENTER);pnlP.add(pnlBodyP,BorderLayout.CENTER);
+            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlP,"Ghi nhận khiếu nại",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
+            String customerId=service.customerIdByPhone(txtPhone.getText().trim());
+            String id=service.createComplaint(customerId,txtPhone.getText().trim(),txaContent.getText().trim());
             info("Đã tạo khiếu nại "+id+". Hệ thống tự phân loại ưu tiên và đặt hạn xử lý 48 giờ.");
             refreshData();
         }catch(Exception ex){showError(ex);}
     }
     private void updateComplaint(){
-        int vr=complaintTable.getSelectedRow();
+        int vr=tblComplaintTable.getSelectedRow();
         if(vr<0){info("Hãy chọn khiếu nại.");return;}
-        int r=complaintTable.convertRowIndexToModel(vr);
+        int r=tblComplaintTable.convertRowIndexToModel(vr);
         String id=String.valueOf(complaintModel.getValueAt(r,0));
         String oldCode=Formats.code(complaintModel.getValueAt(r,4));
         String[] codes=complaintNextStatuses(oldCode);

@@ -26,31 +26,31 @@ public class StockReceiptListPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 
     private final ProductService service = new ProductService();
-    private final JTextField search = UIFactory.field(300);
+    private final JTextField txtSearch = UIFactory.field(300);
     private final DefaultTableModel model = UIFactory.readOnlyModel(new Object[]{
             "Mã phiếu", "Nhà cung cấp", "Nội dung nhập", "Tổng tiền", "Còn nợ", "Trạng thái", "Ngày nhập"});
-    private final JLabel summary = new JLabel();
+    private final JLabel lblSummary = new JLabel();
 
     public StockReceiptListPanel() {
         super(new BorderLayout(0, 10));
-        JTable table = UIFactory.table(model);
-        JScrollPane scroll = UIFactory.scroll(table);
-        scroll.setPreferredSize(new Dimension(900, 340));
+        JTable tblReceipt = UIFactory.table(model);
+        JScrollPane scrReceipt = UIFactory.scroll(tblReceipt);
+        scrReceipt.setPreferredSize(new Dimension(900, 340));
 
-        JPanel top = new JPanel(new BorderLayout(12, 0));
-        top.add(search, BorderLayout.WEST);
-        top.add(summary, BorderLayout.EAST);
+        JPanel pnlTop = new JPanel(new BorderLayout(12, 0));
+        pnlTop.add(txtSearch, BorderLayout.WEST);
+        pnlTop.add(lblSummary, BorderLayout.EAST);
 
-        add(top, BorderLayout.NORTH);
-        add(scroll, BorderLayout.CENTER);
+        add(pnlTop, BorderLayout.NORTH);
+        add(scrReceipt, BorderLayout.CENTER);
 
-        UIFactory.onTextChange(search, this::refreshData);
+        UIFactory.onTextChange(txtSearch, this::refreshData);
         refreshData();
     }
 
     private void refreshData() {
         try {
-            String keyword = "%" + search.getText().trim() + "%";
+            String keyword = "%" + txtSearch.getText().trim() + "%";
             model.setRowCount(0);
             BigDecimal totalRemaining = BigDecimal.ZERO;
             for (Map<String, Object> r : service.query(
@@ -74,7 +74,7 @@ public class StockReceiptListPanel extends JPanel {
                         Formats.vi(r.get("status")),
                         Formats.date(r.get("created_at"))});
             }
-            summary.setText("Số phiếu: " + model.getRowCount() + "   |   Tổng còn nợ: " + Formats.money(totalRemaining));
+            lblSummary.setText("Số phiếu: " + model.getRowCount() + "   |   Tổng còn nợ: " + Formats.money(totalRemaining));
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
         }

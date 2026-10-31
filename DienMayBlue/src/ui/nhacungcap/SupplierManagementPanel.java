@@ -9,35 +9,38 @@ import service.ProductService;
 import util.Formats;
 import util.SessionManager;
 import ui.dungchung.*;
+import ui.phieunhap.StockReceiptListPanel;
 public class SupplierManagementPanel extends BaseScreenPanel {
     private static final long serialVersionUID=1L;
-    private final JTextField search=new HintTextField("Nhập mã NCC, tên NCC hoặc số điện thoại...");
+    private final JTextField txtSearch=new HintTextField("Nhập mã NCC, tên NCC hoặc số điện thoại...");
     private final java.util.List<Integer> supplierIds=new ArrayList<Integer>();
     private final DefaultTableModel model=UIFactory.readOnlyModel(new Object[]{"Mã NCC","Tên NCC","Điện thoại","Công nợ còn lại","Trạng thái"});
-    private final JTable table=UIFactory.table(model);
+    private final JTable tblSupplier=UIFactory.table(model);
     private final ProductService service=new ProductService();
     public SupplierManagementPanel(){
         super("Nhà cung cấp","Quản lý nhà cung cấp, công nợ phát sinh từ phiếu nhập và thanh toán công nợ.");
-        JButton add=UIFactory.primaryButton("+ Thêm NCC");
-        JButton edit=UIFactory.secondaryButton("Chỉnh sửa");
-        JButton status=UIFactory.secondaryButton("Đổi trạng thái");
-        JButton pay=UIFactory.secondaryButton("Thanh toán nợ");
-        JButton history=UIFactory.secondaryButton("Lịch sử thanh toán");
-        actions.add(add);actions.add(edit);actions.add(pay);actions.add(history);actions.add(status);
-        search.setPreferredSize(new Dimension(380,38));
-        body.add(UIFactory.toolbar(search),BorderLayout.NORTH);
-        body.add(UIFactory.scroll(table),BorderLayout.CENTER);
-        UIFactory.onTextChange(search, this::refreshData);
-        add.addActionListener(e->form(null));
-        edit.addActionListener(e->edit());
-        status.addActionListener(e->toggleStatus());
-        pay.addActionListener(e->payDebt());
-        history.addActionListener(e->showPaymentHistory());
+        JButton btnAdd=UIFactory.primaryButton("+ Thêm NCC");
+        JButton btnEdit=UIFactory.secondaryButton("Chỉnh sửa");
+        JButton btnStatus=UIFactory.secondaryButton("Đổi trạng thái");
+        JButton btnPay=UIFactory.secondaryButton("Thanh toán nợ");
+        JButton btnHistory=UIFactory.secondaryButton("Lịch sử thanh toán");
+        JButton btnReceipts=UIFactory.secondaryButton("Phiếu nhập kho");
+        actions.add(btnAdd);actions.add(btnEdit);actions.add(btnPay);actions.add(btnHistory);actions.add(btnReceipts);actions.add(btnStatus);
+        txtSearch.setPreferredSize(new Dimension(380,38));
+        body.add(UIFactory.toolbar(txtSearch),BorderLayout.NORTH);
+        body.add(UIFactory.scroll(tblSupplier),BorderLayout.CENTER);
+        UIFactory.onTextChange(txtSearch, this::refreshData);
+        btnAdd.addActionListener(e->form(null));
+        btnEdit.addActionListener(e->edit());
+        btnStatus.addActionListener(e->toggleStatus());
+        btnPay.addActionListener(e->payDebt());
+        btnHistory.addActionListener(e->showPaymentHistory());
+        btnReceipts.addActionListener(e->StockReceiptListPanel.show(this));
         refreshData();
     }
     @Override public void refreshData(){
         try{
-            String kw="%"+search.getText().trim()+"%";
+            String kw="%"+txtSearch.getText().trim()+"%";
             model.setRowCount(0);
             supplierIds.clear();
             for(Map<String,Object> r:service.query(
@@ -49,16 +52,16 @@ public class SupplierManagementPanel extends BaseScreenPanel {
                 supplierIds.add(((Number)r.get("supplier_id")).intValue());
                 model.addRow(new Object[]{r.get("supplier_code"),r.get("supplier_name"),r.get("phone"),Formats.money(r.get("debt")),status});
             }
-            if(model.getRowCount()>0 && !search.getText().trim().isEmpty()){
-                table.setRowSelectionInterval(0,0);
-                table.scrollRectToVisible(table.getCellRect(0,0,true));
+            if(model.getRowCount()>0 && !txtSearch.getText().trim().isEmpty()){
+                tblSupplier.setRowSelectionInterval(0,0);
+                tblSupplier.scrollRectToVisible(tblSupplier.getCellRect(0,0,true));
             }
         }catch(Exception ex){showError(ex);}
     }
     private Integer selected(){
-        int vr=table.getSelectedRow();
+        int vr=tblSupplier.getSelectedRow();
         if(vr<0)return null;
-        int mr=table.convertRowIndexToModel(vr);
+        int mr=tblSupplier.convertRowIndexToModel(vr);
         return mr>=0 && mr<supplierIds.size()?supplierIds.get(mr):null;
     }
     private void edit(){
@@ -69,28 +72,28 @@ public class SupplierManagementPanel extends BaseScreenPanel {
     private void form(Integer id){
         try{
             Map<String,Object> old=id==null?null:service.one("SELECT * FROM suppliers WHERE supplier_id=?",id);
-            JTextField code=UIFactory.field(180),name=UIFactory.field(260),phone=UIFactory.field(180),addr=UIFactory.field(260);
+            JTextField txtCode=UIFactory.field(180),txtName=UIFactory.field(260),txtPhone=UIFactory.field(180),txtAddr=UIFactory.field(260);
             if(old!=null){
-                code.setText(Formats.safe(old.get("supplier_code")));code.setEditable(false);
-                name.setText(Formats.safe(old.get("supplier_name")));phone.setText(Formats.safe(old.get("phone")));
-                addr.setText(Formats.safe(old.get("address")));
+                txtCode.setText(Formats.safe(old.get("supplier_code")));txtCode.setEditable(false);
+                txtName.setText(Formats.safe(old.get("supplier_name")));txtPhone.setText(Formats.safe(old.get("phone")));
+                txtAddr.setText(Formats.safe(old.get("address")));
             }else{
-                code.setText(nextSupplierCode());
+                txtCode.setText(nextSupplierCode());
             }
-            JPanel p=new JPanel(new GridBagLayout());
-            p.setPreferredSize(new Dimension(460,170));
+            JPanel pnlForm=new JPanel(new GridBagLayout());
+            pnlForm.setPreferredSize(new Dimension(460,170));
             GridBagConstraints gc=new GridBagConstraints();
             gc.insets=new Insets(5,6,5,6);gc.anchor=GridBagConstraints.WEST;gc.fill=GridBagConstraints.HORIZONTAL;
-            gc.gridx=0;gc.gridy=0;gc.weightx=0;p.add(new JLabel("Mã NCC"),gc);
-            gc.gridx=1;gc.weightx=1;p.add(code,gc);
-            gc.gridx=0;gc.gridy++;gc.weightx=0;p.add(new JLabel("Tên NCC"),gc);
-            gc.gridx=1;gc.weightx=1;p.add(name,gc);
-            gc.gridx=0;gc.gridy++;gc.weightx=0;p.add(new JLabel("Điện thoại"),gc);
-            gc.gridx=1;gc.weightx=1;p.add(phone,gc);
-            gc.gridx=0;gc.gridy++;gc.weightx=0;p.add(new JLabel("Địa chỉ"),gc);
-            gc.gridx=1;gc.weightx=1;p.add(addr,gc);
-            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),p,id==null?"Thêm nhà cung cấp":"Sửa nhà cung cấp",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
-            String c=code.getText().trim(),n=name.getText().trim(),ph=phone.getText().trim(),a=addr.getText().trim();
+            gc.gridx=0;gc.gridy=0;gc.weightx=0;pnlForm.add(new JLabel("Mã NCC"),gc);
+            gc.gridx=1;gc.weightx=1;pnlForm.add(txtCode,gc);
+            gc.gridx=0;gc.gridy++;gc.weightx=0;pnlForm.add(new JLabel("Tên NCC"),gc);
+            gc.gridx=1;gc.weightx=1;pnlForm.add(txtName,gc);
+            gc.gridx=0;gc.gridy++;gc.weightx=0;pnlForm.add(new JLabel("Điện thoại"),gc);
+            gc.gridx=1;gc.weightx=1;pnlForm.add(txtPhone,gc);
+            gc.gridx=0;gc.gridy++;gc.weightx=0;pnlForm.add(new JLabel("Địa chỉ"),gc);
+            gc.gridx=1;gc.weightx=1;pnlForm.add(txtAddr,gc);
+            if(JOptionPane.showConfirmDialog(DialogUtils.owner(this),pnlForm,id==null?"Thêm nhà cung cấp":"Sửa nhà cung cấp",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)!=JOptionPane.OK_OPTION)return;
+            String c=txtCode.getText().trim(),n=txtName.getText().trim(),ph=txtPhone.getText().trim(),a=txtAddr.getText().trim();
             String t=old==null?"AUTO-"+c:Formats.safe(old.get("tax_code"));
             if(c.isEmpty() || c.length()>20) throw new IllegalArgumentException("Mã nhà cung cấp là bắt buộc và tối đa 20 ký tự.");
             if(n.isEmpty()) throw new IllegalArgumentException("Tên nhà cung cấp là bắt buộc.");
@@ -161,27 +164,27 @@ public class SupplierManagementPanel extends BaseScreenPanel {
                 info("Nhà cung cấp này hiện không còn công nợ.");
                 return;
             }
-            JTextField amount=UIFactory.field(220);
-            amount.setText(remaining.stripTrailingZeros().toPlainString());
-            JButton all=UIFactory.secondaryButton("Thanh toán toàn bộ");
-            all.addActionListener(e->amount.setText(remaining.stripTrailingZeros().toPlainString()));
-            JPanel p=new JPanel(new GridBagLayout());
+            JTextField txtAmount=UIFactory.field(220);
+            txtAmount.setText(remaining.stripTrailingZeros().toPlainString());
+            JButton btnPayAll=UIFactory.secondaryButton("Thanh toán toàn bộ");
+            btnPayAll.addActionListener(e->txtAmount.setText(remaining.stripTrailingZeros().toPlainString()));
+            JPanel pnlPay=new JPanel(new GridBagLayout());
             GridBagConstraints c=new GridBagConstraints();
             c.insets=new Insets(6,8,6,8);c.anchor=GridBagConstraints.WEST;c.fill=GridBagConstraints.HORIZONTAL;
-            c.gridx=0;c.gridy=0;c.weightx=0;p.add(new JLabel("Nhà cung cấp"),c);
-            c.gridx=1;c.weightx=1;p.add(new JLabel(String.valueOf(s.get("supplier_name"))),c);
-            c.gridx=0;c.gridy++;c.weightx=0;p.add(new JLabel("Mã NCC"),c);
-            c.gridx=1;c.weightx=1;p.add(new JLabel(String.valueOf(s.get("supplier_code"))),c);
-            c.gridx=0;c.gridy++;c.weightx=0;p.add(new JLabel("Công nợ còn lại"),c);
-            c.gridx=1;c.weightx=1;p.add(new JLabel(Formats.money(remaining)),c);
-            c.gridx=0;c.gridy++;c.weightx=0;p.add(new JLabel("Số tiền thanh toán"),c);
-            c.gridx=1;c.weightx=1;p.add(amount,c);
-            c.gridx=1;c.gridy++;c.weightx=0;c.fill=GridBagConstraints.NONE;p.add(all,c);
+            c.gridx=0;c.gridy=0;c.weightx=0;pnlPay.add(new JLabel("Nhà cung cấp"),c);
+            c.gridx=1;c.weightx=1;pnlPay.add(new JLabel(String.valueOf(s.get("supplier_name"))),c);
+            c.gridx=0;c.gridy++;c.weightx=0;pnlPay.add(new JLabel("Mã NCC"),c);
+            c.gridx=1;c.weightx=1;pnlPay.add(new JLabel(String.valueOf(s.get("supplier_code"))),c);
+            c.gridx=0;c.gridy++;c.weightx=0;pnlPay.add(new JLabel("Công nợ còn lại"),c);
+            c.gridx=1;c.weightx=1;pnlPay.add(new JLabel(Formats.money(remaining)),c);
+            c.gridx=0;c.gridy++;c.weightx=0;pnlPay.add(new JLabel("Số tiền thanh toán"),c);
+            c.gridx=1;c.weightx=1;pnlPay.add(txtAmount,c);
+            c.gridx=1;c.gridy++;c.weightx=0;c.fill=GridBagConstraints.NONE;pnlPay.add(btnPayAll,c);
             Object[] options={"Xác nhận","Hủy"};
-            int option=JOptionPane.showOptionDialog(DialogUtils.owner(this),p,
+            int option=JOptionPane.showOptionDialog(DialogUtils.owner(this),pnlPay,
                     "Thanh toán công nợ",JOptionPane.DEFAULT_OPTION,JOptionPane.PLAIN_MESSAGE,null,options,options[0]);
             if(option!=0)return;
-            String raw=amount.getText()==null?"":amount.getText().trim().replace(".","").replace(",","").replace(" ","");
+            String raw=txtAmount.getText()==null?"":txtAmount.getText().trim().replace(".","").replace(",","").replace(" ","");
             if(!raw.matches("\\d+")) throw new IllegalArgumentException("Số tiền thanh toán phải là số nguyên dương.");
             BigDecimal paid=new BigDecimal(raw);
             if(paid.compareTo(BigDecimal.ZERO)<=0) throw new IllegalArgumentException("Số tiền thanh toán phải lớn hơn 0.");
@@ -212,19 +215,19 @@ public class SupplierManagementPanel extends BaseScreenPanel {
                         Formats.safe(r.get("reference_code")), Formats.money(paid), Formats.date(r.get("paid_at")), r.get("full_name")
                 });
             }
-            JLabel supplierLabel=new JLabel("Nhà cung cấp: "+supplier.get("supplier_code")+" - "+supplier.get("supplier_name"));
-            JLabel totalLabel=new JLabel("Tổng đã thanh toán: "+Formats.money(totalPaid));
-            supplierLabel.setFont(supplierLabel.getFont().deriveFont(Font.BOLD));
-            JPanel header=new JPanel(new BorderLayout(12,0));
-            header.add(supplierLabel,BorderLayout.WEST);
-            header.add(totalLabel,BorderLayout.EAST);
-            JTable t=UIFactory.table(m);
-            JScrollPane sp=UIFactory.scroll(t);
-            sp.setPreferredSize(new Dimension(760,300));
-            JPanel panel=new JPanel(new BorderLayout(0,10));
-            panel.add(header,BorderLayout.NORTH);
-            panel.add(sp,BorderLayout.CENTER);
-            JOptionPane.showMessageDialog(DialogUtils.owner(this),panel, "Lịch sử thanh toán",JOptionPane.PLAIN_MESSAGE);
+            JLabel lblSupplier=new JLabel("Nhà cung cấp: "+supplier.get("supplier_code")+" - "+supplier.get("supplier_name"));
+            JLabel lblTotal=new JLabel("Tổng đã thanh toán: "+Formats.money(totalPaid));
+            lblSupplier.setFont(lblSupplier.getFont().deriveFont(Font.BOLD));
+            JPanel pnlHeader=new JPanel(new BorderLayout(12,0));
+            pnlHeader.add(lblSupplier,BorderLayout.WEST);
+            pnlHeader.add(lblTotal,BorderLayout.EAST);
+            JTable tblHistory=UIFactory.table(m);
+            JScrollPane scrHistory=UIFactory.scroll(tblHistory);
+            scrHistory.setPreferredSize(new Dimension(760,300));
+            JPanel pnlHistory=new JPanel(new BorderLayout(0,10));
+            pnlHistory.add(pnlHeader,BorderLayout.NORTH);
+            pnlHistory.add(scrHistory,BorderLayout.CENTER);
+            JOptionPane.showMessageDialog(DialogUtils.owner(this),pnlHistory, "Lịch sử thanh toán",JOptionPane.PLAIN_MESSAGE);
         }catch(Exception ex){showError(ex);}
     }
     private static class HintTextField extends JTextField {
