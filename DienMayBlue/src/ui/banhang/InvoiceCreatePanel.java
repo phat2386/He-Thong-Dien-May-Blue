@@ -16,7 +16,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 import service.SalesService;
-import database.Db;
 import util.Formats;
 import util.SessionManager;
 import ui.dungchung.*;
@@ -302,7 +301,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
 
             customerOptions.clear();
             customerOptions.add("Khách vãng lai");
-            for (Map<String,Object> r : Db.query(
+            for (Map<String,Object> r : service.query(
                     "SELECT customer_id,full_name,phone FROM customers WHERE status='ACTIVE' ORDER BY full_name"))
                 customerOptions.add(r.get("customer_id") + " - " + r.get("full_name") + " - " + Formats.safe(r.get("phone")));
             setComboOptions(customer, customerOptions);
@@ -315,7 +314,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
             }
 
             productOptions.clear();
-            for (Map<String,Object> r : Db.query(
+            for (Map<String,Object> r : service.query(
                     "SELECT product_id,product_name,sale_price,stock_quantity FROM products "
                   + "WHERE status='ACTIVE' AND stock_quantity>0 ORDER BY product_name"))
                 productOptions.add(r.get("product_id") + " - " + r.get("product_name") + " | "
@@ -488,7 +487,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         }
         try {
             String customerId = extractId(s);
-            Map<String,Object> r = Db.one(
+            Map<String,Object> r = service.one(
                     "SELECT c.full_name,c.phone,c.current_points,ISNULL(t.tier_name,N'Tiêu chuẩn') tier_name,"
                   + "ISNULL(t.discount_rate,0) discount_rate,ISNULL(t.point_multiplier,1) point_multiplier "
                   + "FROM customers c LEFT JOIN membership_tiers t ON t.tier_id=c.tier_id WHERE c.customer_id=?",
@@ -537,7 +536,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
     }
 
     private Map<String,Object> loadSellableProduct(String id) throws Exception {
-        Map<String,Object> p = Db.one(
+        Map<String,Object> p = service.one(
                 "SELECT product_id,product_name,category_id,sale_price,stock_quantity,status FROM products WHERE product_id=?", id);
         if (p == null) throw new IllegalArgumentException("Không tìm thấy sản phẩm.");
         if (!"ACTIVE".equals(String.valueOf(p.get("status"))) || ((Number)p.get("stock_quantity")).intValue() <= 0)
@@ -615,7 +614,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
     // (không cộng dồn), tối đa bằng tiền hàng của dòng.
     private BigDecimal bestDiscount(String productId, int categoryId, BigDecimal gross, int qty) throws Exception {
         BigDecimal bestPromotion = BigDecimal.ZERO;
-        for (Map<String,Object> r : Db.query(
+        for (Map<String,Object> r : service.query(
                 "SELECT DISTINCT p.discount_type,p.discount_value FROM promotions p "
               + "LEFT JOIN promotion_products pp ON pp.promotion_id=p.promotion_id "
               + "LEFT JOIN promotion_categories pc ON pc.promotion_id=p.promotion_id "
@@ -637,7 +636,7 @@ public class InvoiceCreatePanel extends BaseScreenPanel {
         String s = comboText(customer);
         if (s.isEmpty() || s.startsWith("Khách vãng lai") || !s.contains(" - ")) return BigDecimal.ZERO;
         String customerId = extractId(s);
-        Object rate=Db.scalar("SELECT ISNULL(t.discount_rate,0) FROM customers c LEFT JOIN membership_tiers t ON t.tier_id=c.tier_id WHERE c.customer_id=?",customerId);
+        Object rate=service.scalar("SELECT ISNULL(t.discount_rate,0) FROM customers c LEFT JOIN membership_tiers t ON t.tier_id=c.tier_id WHERE c.customer_id=?",customerId);
         return rate instanceof BigDecimal ? (BigDecimal)rate : new BigDecimal(String.valueOf(rate==null?0:rate));
     }
 
