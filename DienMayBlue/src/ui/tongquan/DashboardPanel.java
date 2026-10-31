@@ -1,35 +1,16 @@
 package ui.tongquan;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.util.Collections;
-import java.util.Map;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.SwingUtilities;
+import service.SalesService;
+import java.awt.*;
+import java.util.*;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-
-import app.RoundedPanel;
-import app.UIConstants;
-import ui.dungchung.BaseScreenPanel;
-import ui.dungchung.UIFactory;
 import util.Formats;
+import ui.dungchung.*;
 
-public class DashBoardPanel extends BaseScreenPanel {
+
+public class DashboardPanel extends BaseScreenPanel {
 	
 	private static final long serialVersionUID=1L;
 	
@@ -44,7 +25,7 @@ public class DashBoardPanel extends BaseScreenPanel {
 	
 	private final JTable recentTable = UIFactory.table(recentTableModel);
 	
-	public DashBoardPanel() {
+	public DashboardPanel() {
 	    super("Trang Chủ", "Cập nhật tình hình hoạt động");
 	    initLayout();
 	    refreshData();
