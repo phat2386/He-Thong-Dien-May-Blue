@@ -5,7 +5,7 @@ import java.util.Map;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import database.Db;
+import service.SalesService;
 import util.Formats;
 import ui.dungchung.*;
 import ui.chinh.MainFrame;
@@ -18,6 +18,7 @@ public class SalesManagementPanel extends BaseScreenPanel {
     private final JLabel lblInvoices = new JLabel("0");
     private final JLabel lblDeliveries = new JLabel("0");
     private final JLabel lblReturns = new JLabel("0");
+    private final SalesService service = new SalesService();
 
     private final DefaultTableModel recentModel = new DefaultTableModel(
             new Object[]{"Mã hóa đơn", "Khách hàng", "Ngày lập", "Số SP", "Thực thu", "Trạng thái"}, 0) {
@@ -115,7 +116,7 @@ public class SalesManagementPanel extends BaseScreenPanel {
 
     @Override public void refreshData() {
         try {
-            Object revenue = Db.scalar(
+            Object revenue = service.scalar(
                     "SELECT ISNULL(SUM(i.total_amount-ISNULL(r.refunded,0)),0) "
                   + "FROM invoices i "
                   + "LEFT JOIN (SELECT invoice_id,SUM(refund_amount) refunded FROM return_requests "
@@ -123,15 +124,15 @@ public class SalesManagementPanel extends BaseScreenPanel {
                   + "WHERE CAST(i.created_at AS DATE)=CAST(GETDATE() AS DATE) "
                   + "AND i.status IN ('PAID','PARTIAL_REFUND','REFUNDED')");
 
-            Object invoiceCount = Db.scalar(
+            Object invoiceCount = service.scalar(
                     "SELECT COUNT(*) FROM invoices "
                   + "WHERE CAST(created_at AS DATE)=CAST(GETDATE() AS DATE) "
                   + "AND status IN ('PAID','PARTIAL_REFUND','REFUNDED')");
 
-            Object deliveryCount = Db.scalar(
+            Object deliveryCount = service.scalar(
                     "SELECT COUNT(*) FROM deliveries WHERE status='PREPARING'");
 
-            Object returnCount = Db.scalar(
+            Object returnCount = service.scalar(
                     "SELECT COUNT(*) FROM return_requests "
                   + "WHERE status IN ('PENDING','WAITING_APPROVAL','APPROVED')");
 
@@ -141,7 +142,7 @@ public class SalesManagementPanel extends BaseScreenPanel {
             lblReturns.setText(String.valueOf(returnCount));
 
             recentModel.setRowCount(0);
-            for (Map<String,Object> r : Db.query(
+            for (Map<String,Object> r : service.query(
                     "SELECT TOP 10 i.invoice_id,ISNULL(c.full_name,N'Khách vãng lai') customer,i.created_at,"
                   + "i.total_amount-ISNULL(rr.refunded,0) net_total,i.status,"
                   + "ISNULL((SELECT SUM(quantity) FROM invoice_details d WHERE d.invoice_id=i.invoice_id),0) item_count "
