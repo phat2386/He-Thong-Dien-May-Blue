@@ -334,7 +334,7 @@ public class EmployeeService {
             throw new IllegalArgumentException(
                     "Mã nhân viên phải đúng định dạng NV-YYYY-XX, ví dụ NV-2025-01.");
         }
-        if (!phone.trim().matches("[0-9+]{9,15}")) {
+        if (!phone.trim().matches("[0-9+]{10}")) {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ.");
         }
         if (email != null && !email.trim().isEmpty()
