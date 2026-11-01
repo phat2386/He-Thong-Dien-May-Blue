@@ -1,16 +1,22 @@
 package dao;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import connectDB.ConnectDB;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Truy cập dữ liệu cho khách hàng, thành viên, bảo hành và khiếu nại.
  */
-public class CustomerDAO extends BaseDAO {
+public class CustomerDAO {
 
     public List<Map<String, Object>> searchCustomers(String keyword, String tierCode)
             throws SQLException {
@@ -116,54 +122,54 @@ public class CustomerDAO extends BaseDAO {
         return query("SELECT customer_id FROM customers WHERE phone=?", phone);
     }
 
-    public Map<String, Object> findCustomerStatus(Connection con, String customerId) throws SQLException {
-        return one(con, "SELECT customer_id,status FROM customers WHERE customer_id=?", customerId);
+    public Map<String, Object> findCustomerStatus(String customerId) throws SQLException {
+        return one("SELECT customer_id,status FROM customers WHERE customer_id=?", customerId);
     }
 
-    public void invalidateActiveMembershipCards(Connection con, String customerId) throws SQLException {
-        update(con, "UPDATE membership_cards SET status='INVALIDATED',invalidated_at=SYSDATETIME() " +
+    public void invalidateActiveMembershipCards(String customerId) throws SQLException {
+        update("UPDATE membership_cards SET status='INVALIDATED',invalidated_at=SYSDATETIME() " +
                 "WHERE customer_id=? AND status='ACTIVE'", customerId);
     }
 
-    public List<Map<String, Object>> findMembershipCardCodes(Connection con, String customerId)
+    public List<Map<String, Object>> findMembershipCardCodes(String customerId)
             throws SQLException {
-        return query(con, "SELECT card_code FROM membership_cards WHERE customer_id=?", customerId);
+        return query("SELECT card_code FROM membership_cards WHERE customer_id=?", customerId);
     }
 
-    public void insertMembershipCard(Connection con, String customerId, String cardCode)
+    public void insertMembershipCard(String customerId, String cardCode)
             throws SQLException {
-        update(con, "INSERT INTO membership_cards(customer_id,card_code,status) VALUES(?,?,'ACTIVE')", customerId, cardCode);
+        update("INSERT INTO membership_cards(customer_id,card_code,status) VALUES(?,?,'ACTIVE')", customerId, cardCode);
     }
 
-    public Map<String, Object> findTier(Connection con, int tierId) throws SQLException {
-        return one(con, "SELECT tier_code,tier_name FROM membership_tiers WHERE tier_id=?", tierId);
+    public Map<String, Object> findTier(int tierId) throws SQLException {
+        return one("SELECT tier_code,tier_name FROM membership_tiers WHERE tier_id=?", tierId);
     }
 
-    public boolean tierThresholdUsedByAnother(Connection con, int tierId, int minPoints)
+    public boolean tierThresholdUsedByAnother(int tierId, int minPoints)
             throws SQLException {
-        Object count = scalar(con, "SELECT COUNT(*) FROM membership_tiers WHERE tier_id<>? AND min_points=?", tierId, minPoints);
+        Object count = scalar("SELECT COUNT(*) FROM membership_tiers WHERE tier_id<>? AND min_points=?", tierId, minPoints);
         return count != null && ((Number) count).intValue() > 0;
     }
 
-    public List<Map<String, Object>> findTierThresholds(Connection con) throws SQLException {
-        return query(con, "SELECT tier_id,tier_code,min_points FROM membership_tiers");
+    public List<Map<String, Object>> findTierThresholds() throws SQLException {
+        return query("SELECT tier_id,tier_code,min_points FROM membership_tiers");
     }
 
     public void updateTierPolicy(
-            Connection con, int tierId, int minPoints, BigDecimal discountRate, BigDecimal pointMultiplier) throws SQLException {
-        update(con, "UPDATE membership_tiers SET min_points=?,discount_rate=?,point_multiplier=? WHERE tier_id=?",
+            int tierId, int minPoints, BigDecimal discountRate, BigDecimal pointMultiplier) throws SQLException {
+        update("UPDATE membership_tiers SET min_points=?,discount_rate=?,point_multiplier=? WHERE tier_id=?",
                 minPoints, discountRate, pointMultiplier, tierId);
     }
 
-    public void recalculateAllCustomerTiers(Connection con) throws SQLException {
-        update(con, "UPDATE c SET tier_id=x.tier_id,updated_at=SYSDATETIME() " +
+    public void recalculateAllCustomerTiers() throws SQLException {
+        update("UPDATE c SET tier_id=x.tier_id,updated_at=SYSDATETIME() " +
                 "FROM customers c CROSS APPLY (" + " SELECT TOP 1 tier_id FROM membership_tiers " +
                 " WHERE min_points<=c.current_points ORDER BY min_points DESC) x");
     }
 
-    public Map<String, Object> findWarrantyPurchase(Connection con, long invoiceDetailId)
+    public Map<String, Object> findWarrantyPurchase(long invoiceDetailId)
             throws SQLException {
-        return one(con, "SELECT d.product_id,d.quantity,i.customer_id,i.created_at,i.status,p.warranty_months," +
+        return one("SELECT d.product_id,d.quantity,i.customer_id,i.created_at,i.status,p.warranty_months," +
                 "d.quantity-COALESCE((SELECT SUM(rd.quantity) FROM return_details rd " +
                 "JOIN return_requests rr ON rr.return_id=rd.return_id " +
                 "WHERE rd.invoice_detail_id=d.invoice_detail_id AND rr.status='COMPLETED'),0) remaining_qty " +
@@ -171,16 +177,16 @@ public class CustomerDAO extends BaseDAO {
                 "JOIN products p ON p.product_id=d.product_id WHERE d.invoice_detail_id=?", invoiceDetailId);
     }
 
-    public int activeWarrantyCount(Connection con, long invoiceDetailId) throws SQLException {
-        Object count = scalar(con, "SELECT COUNT(*) FROM warranties WHERE invoice_detail_id=? " +
+    public int activeWarrantyCount(long invoiceDetailId) throws SQLException {
+        Object count = scalar("SELECT COUNT(*) FROM warranties WHERE invoice_detail_id=? " +
                 "AND status IN ('REPAIRING','COMPLETED','REPLACEMENT')", invoiceDetailId);
         return count == null ? 0 : ((Number) count).intValue();
     }
 
     public void insertWarranty(
-            Connection con, String warrantyId, String customerId, long invoiceDetailId,
+            String warrantyId, String customerId, long invoiceDetailId,
             Object productId, String issue, LocalDate warrantyEnd, String createdBy) throws SQLException {
-        update(con, "INSERT INTO warranties(" +
+        update("INSERT INTO warranties(" +
                 "warranty_id,customer_id,invoice_detail_id,product_id,issue_description,warranty_end_date,status,created_by) " +
                 "VALUES(?,?,?,?,?,?,'REPAIRING',?)", warrantyId, customerId, invoiceDetailId, productId, issue, warrantyEnd, createdBy);
     }
@@ -192,20 +198,13 @@ public class CustomerDAO extends BaseDAO {
                 "JOIN invoices i ON i.invoice_id=d.invoice_id WHERE w.warranty_id=?", warrantyId);
     }
 
-    public Map<String, Object> findWarrantyStatus(Connection con, String warrantyId) throws SQLException {
-        return one(con, "SELECT status FROM warranties WHERE warranty_id=?", warrantyId);
-    }
-
-    public Map<String, Object> findWarrantyChargeData(Connection con, String warrantyId)
-            throws SQLException {
-        return one(con, "SELECT d.unit_price,i.created_at FROM warranties w " +
-                "JOIN invoice_details d ON d.invoice_detail_id=w.invoice_detail_id " +
-                "JOIN invoices i ON i.invoice_id=d.invoice_id WHERE w.warranty_id=?", warrantyId);
+    public Map<String, Object> findWarrantyStatus(String warrantyId) throws SQLException {
+        return one("SELECT status FROM warranties WHERE warranty_id=?", warrantyId);
     }
 
     public void updateWarrantyState(
-            Connection con, String warrantyId, String status, BigDecimal replacementCharge) throws SQLException {
-        update(con, "UPDATE warranties SET status=?," +
+            String warrantyId, String status, BigDecimal replacementCharge) throws SQLException {
+        update("UPDATE warranties SET status=?," +
                 "replacement_charge=CASE WHEN ?='REPLACEMENT' THEN ? ELSE replacement_charge END," +
                 "completed_at=CASE WHEN ?='COMPLETED' THEN SYSDATETIME() ELSE completed_at END," +
                 "returned_at=CASE WHEN ?='RETURNED' THEN SYSDATETIME() ELSE returned_at END " + "WHERE warranty_id=?", status, status,
@@ -213,60 +212,115 @@ public class CustomerDAO extends BaseDAO {
     }
 
     public void insertWarrantyHistory(
-            Connection con, String warrantyId, Object oldStatus, String newStatus, String changedBy, Object note) throws SQLException {
-        update(con, "INSERT INTO warranty_history(warranty_id,old_status,new_status,changed_by,note) " + "VALUES(?,?,?,?,?)", warrantyId,
+            String warrantyId, Object oldStatus, String newStatus, String changedBy, Object note) throws SQLException {
+        update("INSERT INTO warranty_history(warranty_id,old_status,new_status,changed_by,note) " + "VALUES(?,?,?,?,?)", warrantyId,
                 oldStatus, newStatus, changedBy, note);
     }
 
     public void insertComplaint(
-            Connection con, String complaintId, Object customerId, String phone,
+            String complaintId, Object customerId, String phone,
             String content, String priority, String employeeId) throws SQLException {
-        update(con, "INSERT INTO complaints(" +
+        update("INSERT INTO complaints(" +
                 "complaint_id,customer_id,customer_phone,content,priority,status,created_by,assigned_to) " +
                 "VALUES(?,?,?,?,?,'NEW',?,?)", complaintId, customerId, phone, content, priority, employeeId, employeeId);
     }
 
     public void insertComplaintHistory(
-            Connection con, String complaintId, Object oldStatus, String newStatus, String changedBy, Object note) throws SQLException {
-        update(con, "INSERT INTO complaint_history(complaint_id,old_status,new_status,changed_by,note) " +
+            String complaintId, Object oldStatus, String newStatus, String changedBy, Object note) throws SQLException {
+        update("INSERT INTO complaint_history(complaint_id,old_status,new_status,changed_by,note) " +
                 "VALUES(?,?,?,?,?)", complaintId, oldStatus, newStatus, changedBy, note);
     }
 
-    public List<Map<String, Object>> findOverdueComplaints(Connection con) throws SQLException {
-        return query(con, "SELECT complaint_id,customer_phone,content FROM complaints WITH (UPDLOCK,ROWLOCK) " +
+    public List<Map<String, Object>> findOverdueComplaints() throws SQLException {
+        return query("SELECT complaint_id,customer_phone,content FROM complaints WITH (UPDLOCK,ROWLOCK) " +
                 "WHERE escalated=0 AND due_at<SYSDATETIME() AND status NOT IN ('RESOLVED','CLOSED')");
     }
 
-    public void markComplaintEscalated(Connection con, String complaintId) throws SQLException {
-        update(con, "UPDATE complaints SET escalated=1,updated_at=SYSDATETIME() " + "WHERE complaint_id=? AND escalated=0", complaintId);
+    public void markComplaintEscalated(String complaintId) throws SQLException {
+        update("UPDATE complaints SET escalated=1,updated_at=SYSDATETIME() " + "WHERE complaint_id=? AND escalated=0", complaintId);
     }
 
-    public List<Map<String, Object>> findActiveManagers(Connection con) throws SQLException {
-        return query(con, "SELECT DISTINCT e.employee_id FROM accounts a " +
+    public List<Map<String, Object>> findActiveManagers() throws SQLException {
+        return query("SELECT DISTINCT e.employee_id FROM accounts a " +
                 "JOIN employees e ON e.employee_id=a.employee_id " + "JOIN roles r ON r.role_id=a.role_id " +
                 "WHERE r.role_code='MANAGER' AND a.status='ACTIVE' AND e.status='ACTIVE'");
     }
 
-    public void insertNotification(Connection con, Object employeeId, String title, String content)
+    public void insertNotification(Object employeeId, String title, String content)
             throws SQLException {
-        update(con, "INSERT INTO notifications(employee_id,title,content) VALUES(?,?,?)", employeeId, title, content);
+        update("INSERT INTO notifications(employee_id,title,content) VALUES(?,?,?)", employeeId, title, content);
     }
 
-    public Map<String, Object> findComplaintStatus(Connection con, String complaintId)
+    public Map<String, Object> findComplaintStatus(String complaintId)
             throws SQLException {
-        return one(con, "SELECT status,assigned_to FROM complaints WHERE complaint_id=?", complaintId);
+        return one("SELECT status,assigned_to FROM complaints WHERE complaint_id=?", complaintId);
     }
 
     public void updateComplaintStatus(
-            Connection con, String complaintId, String status, String assignedTo) throws SQLException {
-        update(con, "UPDATE complaints SET status=?,assigned_to=COALESCE(assigned_to,?),updated_at=SYSDATETIME()," +
+            String complaintId, String status, String assignedTo) throws SQLException {
+        update("UPDATE complaints SET status=?,assigned_to=COALESCE(assigned_to,?),updated_at=SYSDATETIME()," +
                 "resolved_at=CASE WHEN ? IN ('RESOLVED','CLOSED') " + "THEN COALESCE(resolved_at,SYSDATETIME()) ELSE resolved_at END " +
                 "WHERE complaint_id=?", status, assignedTo, status, complaintId);
     }
 
     public void insertAuditLog(
-            Connection con, Integer accountId, String action, String entity, String entityId, String detail) throws SQLException {
-        update(con, "INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)", accountId, action,
+            Integer accountId, String action, String entity, String entityId, String detail) throws SQLException {
+        update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)", accountId, action,
                 entity, entityId, detail);
+    }
+
+    public List<Map<String, Object>> query(String sql, Object... thamSo) throws SQLException {
+        List<Map<String, Object>> ketQua = new ArrayList<>();
+        try (Connection con = ConnectDB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            guiThamSo(ps, thamSo);
+            try (ResultSet rs = ps.executeQuery()) {
+                ResultSetMetaData md = rs.getMetaData();
+                int soCot = md.getColumnCount();
+                while (rs.next()) {
+                    Map<String, Object> dong = new LinkedHashMap<>();
+                    for (int i = 1; i <= soCot; i++) {
+                        dong.put(md.getColumnLabel(i), rs.getObject(i));
+                    }
+                    ketQua.add(dong);
+                }
+            }
+        }
+        return ketQua;
+    }
+
+    public Map<String, Object> one(String sql, Object... thamSo) throws SQLException {
+        List<Map<String, Object>> ds = query(sql, thamSo);
+        if (ds.isEmpty()) {
+            return null;
+        }
+        return ds.get(0);
+    }
+
+    public Object scalar(String sql, Object... thamSo) throws SQLException {
+        try (Connection con = ConnectDB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            guiThamSo(ps, thamSo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getObject(1);
+                }
+                return null;
+            }
+        }
+    }
+
+    public int update(String sql, Object... thamSo) throws SQLException {
+        try (Connection con = ConnectDB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            guiThamSo(ps, thamSo);
+            return ps.executeUpdate();
+        }
+    }
+
+    private void guiThamSo(PreparedStatement ps, Object[] thamSo) throws SQLException {
+        for (int i = 0; i < thamSo.length; i++) {
+            ps.setObject(i + 1, thamSo[i]);
+        }
     }
 }

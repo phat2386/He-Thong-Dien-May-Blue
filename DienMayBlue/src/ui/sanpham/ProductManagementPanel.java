@@ -138,28 +138,25 @@ public class ProductManagementPanel extends BaseScreenPanel {
             Integer supplier=cmbFormSupplier.getSelectedIndex()<=0?null:Integer.valueOf(prefix(cmbFormSupplier));
             int warrantyMonths=Integer.parseInt(txtWarranty.getText().trim());
             if(warrantyMonths<12) throw new IllegalArgumentException("Thời hạn bảo hành tối thiểu là 12 tháng.");
-            service.transaction(con->{
-                if(old==null && service.one(con,"SELECT product_id FROM products WHERE product_id=?",pid)!=null)
-                    throw new IllegalArgumentException("Mã sản phẩm đã tồn tại.");
-                Map<String,Object> c=service.one(con,"SELECT active FROM categories WHERE category_id=?",category);
-                if(c==null || !Boolean.TRUE.equals(c.get("active"))) throw new IllegalArgumentException("Danh mục không còn hoạt động.");
-                if(supplier!=null && service.one(con,"SELECT supplier_id FROM suppliers WHERE supplier_id=?",supplier)==null)
-                    throw new IllegalArgumentException("Nhà cung cấp không tồn tại.");
-                if(old==null){
-                    String internalBarcode = "INTERNAL-" + pid;
-                    service.update(con,"INSERT INTO products(product_id,barcode,product_name,category_id,supplier_id,cost_price,sale_price,stock_quantity,warranty_months,image_path,status) "
-                            +"VALUES(?,?,?,?,?,?,?,0,?,?,'OUT_OF_STOCK')",
-                            pid,internalBarcode,pn,category,supplier,cp,sp,warrantyMonths,txtImage.getText().trim().isEmpty()?null:txtImage.getText().trim());
-                }else{
-                    service.update(con,"UPDATE products SET product_name=?,category_id=?,supplier_id=?,cost_price=?,sale_price=?,warranty_months=?,image_path=?,updated_at=SYSDATETIME() WHERE product_id=?",
-                            pn,category,supplier,cp,sp,warrantyMonths,txtImage.getText().trim().isEmpty()?null:txtImage.getText().trim(),pid);
-                }
-                if(SessionManager.getCurrentAccount()!=null)
-                    service.update(con,"INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
-                            SessionManager.getCurrentAccount().getAccountId(),old==null?"PRODUCT_CREATED":"PRODUCT_UPDATED","products",pid,
-                            (old==null?"Tạo":"Cập nhật")+" sản phẩm "+pn+(old==null?"; tồn ban đầu = 0":""));
-                return null;
-            });
+            if(old==null && service.one("SELECT product_id FROM products WHERE product_id=?",pid)!=null)
+                throw new IllegalArgumentException("Mã sản phẩm đã tồn tại.");
+            Map<String,Object> c=service.one("SELECT active FROM categories WHERE category_id=?",category);
+            if(c==null || !Boolean.TRUE.equals(c.get("active"))) throw new IllegalArgumentException("Danh mục không còn hoạt động.");
+            if(supplier!=null && service.one("SELECT supplier_id FROM suppliers WHERE supplier_id=?",supplier)==null)
+                throw new IllegalArgumentException("Nhà cung cấp không tồn tại.");
+            if(old==null){
+                String internalBarcode = "INTERNAL-" + pid;
+                service.update("INSERT INTO products(product_id,barcode,product_name,category_id,supplier_id,cost_price,sale_price,stock_quantity,warranty_months,image_path,status) "
+                        +"VALUES(?,?,?,?,?,?,?,0,?,?,'OUT_OF_STOCK')",
+                        pid,internalBarcode,pn,category,supplier,cp,sp,warrantyMonths,txtImage.getText().trim().isEmpty()?null:txtImage.getText().trim());
+            }else{
+                service.update("UPDATE products SET product_name=?,category_id=?,supplier_id=?,cost_price=?,sale_price=?,warranty_months=?,image_path=?,updated_at=SYSDATETIME() WHERE product_id=?",
+                        pn,category,supplier,cp,sp,warrantyMonths,txtImage.getText().trim().isEmpty()?null:txtImage.getText().trim(),pid);
+            }
+            if(SessionManager.getCurrentAccount()!=null)
+                service.update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
+                        SessionManager.getCurrentAccount().getAccountId(),old==null?"PRODUCT_CREATED":"PRODUCT_UPDATED","products",pid,
+                        (old==null?"Tạo":"Cập nhật")+" sản phẩm "+pn+(old==null?"; tồn ban đầu = 0":""));
             refreshData();
         }catch(Exception ex){showError(ex);}
     }
