@@ -50,8 +50,6 @@ public class EmployeeDAO {
         return status == null ? null : String.valueOf(status);
     }
 
-    // ===== Kiểm tra điều kiện (chạy trong transaction của service) =====
-
     public boolean idOrPhoneExists(Connection con, String employeeId, String phone)
             throws SQLException {
 
@@ -203,7 +201,6 @@ public class EmployeeDAO {
         return count == null ? 0 : ((Number) count).intValue();
     }
 
-    // ===== Kiểm tra điều kiện (chạy trong transaction của service) =====
 
     public Map<String, Object> findEmployeeForShift(Connection con, String employeeId)
             throws SQLException {
@@ -395,7 +392,6 @@ public class EmployeeDAO {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
-    /** Lấy 1 dòng, dùng chung connection của transaction đang chạy. */
     private static Map<String, Object> queryOne(Connection con, String sql, Object... params)
             throws SQLException {
 

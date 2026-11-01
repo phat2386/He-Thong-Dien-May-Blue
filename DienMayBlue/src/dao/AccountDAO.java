@@ -284,7 +284,7 @@ public class AccountDAO {
                 accountId, accountId);
     }
 
-    // ===== Thêm / sửa / xóa (chạy trong transaction do service quản lý) =====
+
 
     public long insert(Connection con, String employeeId, String username,
                        String passwordHash, int roleId) throws SQLException {
@@ -354,7 +354,7 @@ public class AccountDAO {
               + "AND a.status = 'ACTIVE' AND e.status = 'ACTIVE'");
     }
 
-    /** Dùng cho các kiểm tra "quản lý cuối cùng" khi chưa mở transaction. */
+  
     public int countActiveManagers() throws SQLException {
         try (Connection con = ConnectDB.getConnection()) {
             return countActiveManagers(con);
@@ -441,9 +441,7 @@ public class AccountDAO {
         return result;
     }
 
-    // ===== Nhật ký thao tác =====
-
-    /** Ghi nhật ký cùng transaction với thao tác nghiệp vụ. */
+   
     public void insertAuditLog(Connection con, int accountId, String actionCode,
                                String entityName, String entityId, String detail)
             throws SQLException {
@@ -455,7 +453,6 @@ public class AccountDAO {
                 accountId, actionCode, entityName, entityId, detail);
     }
 
-    /** Ghi nhật ký riêng, không nằm trong transaction nào. */
     public void insertAuditLog(int accountId, String actionCode,
                                String entityName, String entityId, String detail)
             throws SQLException {
@@ -490,7 +487,7 @@ public class AccountDAO {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
-    /** Lấy 1 dòng, dùng chung connection của transaction đang chạy. */
+
     private static Map<String, Object> queryOne(Connection con, String sql, Object... params)
             throws SQLException {
 
