@@ -138,12 +138,4 @@ public class CustomerManagementPanel extends BaseScreenPanel {
             showError(ex);
         }
     }
-    public static void main(String[] args) {
-        JFrame f = new JFrame("Quản lý khách hàng");
-        f.setContentPane(new CustomerManagementPanel());
-        f.setSize(1200, 700);
-        f.setLocationRelativeTo(null);
-        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setVisible(true);
-    }
 }

@@ -175,12 +175,4 @@ public class PersonalSalesPanel extends BaseScreenPanel {
             }
         }
     }
-    public static void main(String[] args) {
-        JFrame f = new JFrame();
-        f.add(new PersonalSalesPanel());
-        f.setSize(1200, 700);
-        f.setLocationRelativeTo(null);
-        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setVisible(true);
-    }
 }
