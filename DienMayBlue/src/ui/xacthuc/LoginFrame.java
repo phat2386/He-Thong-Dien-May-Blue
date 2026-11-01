@@ -277,7 +277,7 @@ public class LoginFrame extends JFrame {
         form.add(Box.createVerticalStrut(22));
 
         // Bảng tài khoản mẫu
-        form.add(taoBangTaiKhoanMau());
+        // form.add(taoBangTaiKhoanMau());
         form.add(Box.createVerticalGlue());
 
         // Đặt form vào giữa nửa bên phải
