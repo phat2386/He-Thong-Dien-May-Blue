@@ -140,4 +140,17 @@ public class ProductService extends BaseService<ProductDAO> {
             return null;
         });
     }
+    public List<Map<String, Object>> findStockReceipts(String keyword) throws Exception {
+        requireManagerPermission("PRODUCT_MANAGE");
+        return dao.findStockReceipts(keyword);
+    }
+
+    public Map<String, Object> findStockReceiptByCode(String receiptCode) throws Exception {
+        requireManagerPermission("PRODUCT_MANAGE");
+        if (receiptCode == null || receiptCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã phiếu nhập không hợp lệ.");
+        }
+        return dao.findStockReceiptByCode(receiptCode.trim());
+    }
+
 }
