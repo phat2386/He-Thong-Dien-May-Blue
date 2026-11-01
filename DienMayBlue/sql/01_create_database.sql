@@ -1,0 +1,8 @@
+IF DB_ID(N'DienMayBlue') IS NULL
+BEGIN
+    CREATE DATABASE DienMayBlue;
+END
+GO
+
+USE DienMayBlue;
+GO
