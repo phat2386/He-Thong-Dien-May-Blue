@@ -330,6 +330,10 @@ public class EmployeeService {
             throw new IllegalArgumentException(
                     "Mã nhân viên, họ tên và số điện thoại không được để trống.");
         }
+        if (!employeeId.trim().matches("NV-[0-9]{4}-[0-9]{2}")) {
+            throw new IllegalArgumentException(
+                    "Mã nhân viên phải đúng định dạng NV-YYYY-XX, ví dụ NV-2025-01.");
+        }
         if (!phone.trim().matches("[0-9+]{9,15}")) {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ.");
         }
