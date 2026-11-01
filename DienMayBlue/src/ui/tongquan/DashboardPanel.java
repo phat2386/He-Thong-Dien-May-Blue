@@ -76,7 +76,7 @@ public class DashboardPanel extends BaseScreenPanel {
         categoryListPanel.setOpaque(false);
         categoryListPanel.setLayout(new BoxLayout(categoryListPanel, BoxLayout.Y_AXIS));
         
-        catCard.add(catTitle, BorderLayout.NORTH);
+        catCard.add(catTitle, BorderLayout.NORTH);	
         catCard.add(categoryListPanel, BorderLayout.CENTER);
 
         JPanel middleGrid = new JPanel(new GridBagLayout());
@@ -315,17 +315,5 @@ public class DashboardPanel extends BaseScreenPanel {
             }
             g2.dispose();
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Dashboard Tổng Quan");
-            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            f.setContentPane(new DashboardPanel());
-            f.setMinimumSize(new Dimension(1000, 680));
-            f.setSize(1260, 780);
-            f.setLocationRelativeTo(null);
-            f.setVisible(true);
-        });
     }
 }
