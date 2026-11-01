@@ -99,23 +99,20 @@ public class SupplierManagementPanel extends BaseScreenPanel {
             if(n.isEmpty()) throw new IllegalArgumentException("Tên nhà cung cấp là bắt buộc.");
             if(!ph.matches("\\d{9,11}")) throw new IllegalArgumentException("Số điện thoại phải gồm 9-11 chữ số.");
             if(a.isEmpty()) throw new IllegalArgumentException("Địa chỉ là bắt buộc.");
-            service.transaction(con->{
-                Object dupCode=id==null?service.scalar(con,"SELECT COUNT(*) FROM suppliers WHERE supplier_code=?",c):service.scalar(con,"SELECT COUNT(*) FROM suppliers WHERE supplier_code=? AND supplier_id<>?",c,id);
-                Object dupPhone=id==null?service.scalar(con,"SELECT COUNT(*) FROM suppliers WHERE phone=?",ph):service.scalar(con,"SELECT COUNT(*) FROM suppliers WHERE phone=? AND supplier_id<>?",ph,id);
-                if(((Number)dupCode).intValue()>0) throw new IllegalArgumentException("Mã nhà cung cấp đã tồn tại.");
-                if(((Number)dupPhone).intValue()>0) throw new IllegalArgumentException("Số điện thoại đã thuộc nhà cung cấp khác.");
-                Object auditId=id;
-                if(id==null){
-                    long newId=service.insertAndKey(con,"INSERT INTO suppliers(supplier_code,supplier_name,phone,address,tax_code,status) VALUES(?,?,?,?,?,'ACTIVE')",c,n,ph,a,t);
-                    auditId=newId;
-                }else{
-                    service.update(con,"UPDATE suppliers SET supplier_name=?,phone=?,address=?,tax_code=?,updated_at=SYSDATETIME() WHERE supplier_id=?",n,ph,a,t,id);
-                }
-                if(SessionManager.getCurrentAccount()!=null)
-                    service.update(con,"INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
-                            SessionManager.getCurrentAccount().getAccountId(),id==null?"SUPPLIER_CREATED":"SUPPLIER_UPDATED","suppliers",String.valueOf(auditId),(id==null?"Tạo":"Cập nhật")+" nhà cung cấp "+n);
-                return null;
-            });
+            Object dupCode=id==null?service.scalar("SELECT COUNT(*) FROM suppliers WHERE supplier_code=?",c):service.scalar("SELECT COUNT(*) FROM suppliers WHERE supplier_code=? AND supplier_id<>?",c,id);
+            Object dupPhone=id==null?service.scalar("SELECT COUNT(*) FROM suppliers WHERE phone=?",ph):service.scalar("SELECT COUNT(*) FROM suppliers WHERE phone=? AND supplier_id<>?",ph,id);
+            if(((Number)dupCode).intValue()>0) throw new IllegalArgumentException("Mã nhà cung cấp đã tồn tại.");
+            if(((Number)dupPhone).intValue()>0) throw new IllegalArgumentException("Số điện thoại đã thuộc nhà cung cấp khác.");
+            Object auditId=id;
+            if(id==null){
+                long newId=service.insertAndKey("INSERT INTO suppliers(supplier_code,supplier_name,phone,address,tax_code,status) VALUES(?,?,?,?,?,'ACTIVE')",c,n,ph,a,t);
+                auditId=newId;
+            }else{
+                service.update("UPDATE suppliers SET supplier_name=?,phone=?,address=?,tax_code=?,updated_at=SYSDATETIME() WHERE supplier_id=?",n,ph,a,t,id);
+            }
+            if(SessionManager.getCurrentAccount()!=null)
+                service.update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
+                        SessionManager.getCurrentAccount().getAccountId(),id==null?"SUPPLIER_CREATED":"SUPPLIER_UPDATED","suppliers",String.valueOf(auditId),(id==null?"Tạo":"Cập nhật")+" nhà cung cấp "+n);
             refreshData();
         }catch(Exception ex){showError(ex);}
     }

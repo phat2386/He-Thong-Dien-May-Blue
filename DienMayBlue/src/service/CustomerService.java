@@ -12,14 +12,14 @@ import java.util.Map;
 
 import dao.CustomerDAO;
 import entity.Account;
+import util.SessionManager;
 import util.Formats;
 import util.Ids;
 
-public class CustomerService extends BaseService<CustomerDAO> {
+public class CustomerService {
 
-    public CustomerService() {
-        super(new CustomerDAO());
-    }
+    private final CustomerDAO dao = new CustomerDAO();
+
 
     public List<Map<String, Object>> searchCustomers(String keyword, String tierCode)
             throws SQLException {
@@ -97,39 +97,37 @@ public class CustomerService extends BaseService<CustomerDAO> {
             throw new IllegalArgumentException("Chưa chọn khách hàng.");
         }
         String normalizedId = customerId.trim();
-        return dao.transaction(con -> {
-            Map<String, Object> customer = dao.findCustomerStatus(con, normalizedId);
-            if (customer == null) {
-                throw new IllegalArgumentException("Không tìm thấy khách hàng.");
+        Map<String, Object> customer = dao.findCustomerStatus(normalizedId);
+        if (customer == null) {
+            throw new IllegalArgumentException("Không tìm thấy khách hàng.");
+        }
+        if (!"ACTIVE".equals(String.valueOf(customer.get("status")))) {
+            throw new IllegalStateException( "Khách hàng đang ngừng hoạt động nên không thể cấp thẻ mới.");
+        }
+        dao.invalidateActiveMembershipCards(normalizedId);
+        int nextSequence = 1;
+        String prefix = "BLUE-" + normalizedId + "-";
+        for (Map<String, Object> row : dao.findMembershipCardCodes(normalizedId)) {
+            String code = row.get("card_code") == null ? "" : String.valueOf(row.get("card_code")).trim();
+            if (!code.startsWith(prefix)) {
+                continue;
             }
-            if (!"ACTIVE".equals(String.valueOf(customer.get("status")))) {
-                throw new IllegalStateException( "Khách hàng đang ngừng hoạt động nên không thể cấp thẻ mới.");
+            String suffix = code.substring(prefix.length());
+            if (!suffix.matches("\\d+")) {
+                continue;
             }
-            dao.invalidateActiveMembershipCards(con, normalizedId);
-            int nextSequence = 1;
-            String prefix = "BLUE-" + normalizedId + "-";
-            for (Map<String, Object> row : dao.findMembershipCardCodes(con, normalizedId)) {
-                String code = row.get("card_code") == null ? "" : String.valueOf(row.get("card_code")).trim();
-                if (!code.startsWith(prefix)) {
-                    continue;
-                }
-                String suffix = code.substring(prefix.length());
-                if (!suffix.matches("\\d+")) {
-                    continue;
-                }
-                try {
-                    nextSequence = Math.max(nextSequence, Integer.parseInt(suffix) + 1);
-                } catch (NumberFormatException ignored) {
-                    // Bỏ qua mã thẻ cũ không còn đúng định dạng số.
-                }
+            try {
+                nextSequence = Math.max(nextSequence, Integer.parseInt(suffix) + 1);
+            } catch (NumberFormatException ignored) {
+                // Bỏ qua mã thẻ cũ không còn đúng định dạng số.
             }
-            String cardCode = String.format("BLUE-%s-%02d", normalizedId, nextSequence);
-            dao.insertMembershipCard(con, normalizedId, cardCode);
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "MEMBERSHIP_CARD_REISSUED", "customers",
-                    normalizedId, "Cấp/cấp lại thẻ thành viên: " + cardCode);
-            return cardCode;
-        });
+        }
+        String cardCode = String.format("BLUE-%s-%02d", normalizedId, nextSequence);
+        dao.insertMembershipCard(normalizedId, cardCode);
+        dao.insertAuditLog(
+                account.getAccountId(), "MEMBERSHIP_CARD_REISSUED", "customers",
+                normalizedId, "Cấp/cấp lại thẻ thành viên: " + cardCode);
+        return cardCode;
     }
 
     public void updateMembershipTierPolicy(
@@ -144,44 +142,41 @@ public class CustomerService extends BaseService<CustomerDAO> {
         if (pointMultiplier == null || pointMultiplier.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Hệ số tích điểm phải lớn hơn 0.");
         }
-        dao.transaction(con -> {
-            Map<String, Object> tier = dao.findTier(con, tierId);
-            if (tier == null) {
-                throw new IllegalArgumentException("Không tìm thấy hạng thành viên.");
+        Map<String, Object> tier = dao.findTier(tierId);
+        if (tier == null) {
+            throw new IllegalArgumentException("Không tìm thấy hạng thành viên.");
+        }
+        String tierCode = String.valueOf(tier.get("tier_code"));
+        if ("STANDARD".equals(tierCode) && minPoints != 0) {
+            throw new IllegalArgumentException("Hạng Tiêu chuẩn phải bắt đầu từ 0 điểm.");
+        }
+        if (dao.tierThresholdUsedByAnother(tierId, minPoints)) {
+            throw new IllegalArgumentException("Mốc điểm này đã được dùng cho hạng khác.");
+        }
+        Map<String, Integer> proposed = new LinkedHashMap<>();
+        for (Map<String, Object> row : dao.findTierThresholds()) {
+            int id = ((Number) row.get("tier_id")).intValue();
+            int threshold = id == tierId ? minPoints : ((Number) row.get("min_points")).intValue();
+            proposed.put(String.valueOf(row.get("tier_code")), threshold);
+        }
+        String[] order = {"STANDARD", "SILVER", "GOLD", "PLATINUM"};
+        Integer previous = null;
+        for (String code : order) {
+            Integer current = proposed.get(code);
+            if (current == null) {
+                continue;
             }
-            String tierCode = String.valueOf(tier.get("tier_code"));
-            if ("STANDARD".equals(tierCode) && minPoints != 0) {
-                throw new IllegalArgumentException("Hạng Tiêu chuẩn phải bắt đầu từ 0 điểm.");
+            if (previous != null && current <= previous) {
+                throw new IllegalArgumentException( "Mốc điểm phải tăng dần theo thứ tự Tiêu chuẩn → Bạc → Vàng → Bạch kim.");
             }
-            if (dao.tierThresholdUsedByAnother(con, tierId, minPoints)) {
-                throw new IllegalArgumentException("Mốc điểm này đã được dùng cho hạng khác.");
-            }
-            Map<String, Integer> proposed = new LinkedHashMap<>();
-            for (Map<String, Object> row : dao.findTierThresholds(con)) {
-                int id = ((Number) row.get("tier_id")).intValue();
-                int threshold = id == tierId ? minPoints : ((Number) row.get("min_points")).intValue();
-                proposed.put(String.valueOf(row.get("tier_code")), threshold);
-            }
-            String[] order = {"STANDARD", "SILVER", "GOLD", "PLATINUM"};
-            Integer previous = null;
-            for (String code : order) {
-                Integer current = proposed.get(code);
-                if (current == null) {
-                    continue;
-                }
-                if (previous != null && current <= previous) {
-                    throw new IllegalArgumentException( "Mốc điểm phải tăng dần theo thứ tự Tiêu chuẩn → Bạc → Vàng → Bạch kim.");
-                }
-                previous = current;
-            }
-            dao.updateTierPolicy(con, tierId, minPoints, discountRate, pointMultiplier);
-            dao.recalculateAllCustomerTiers(con);
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "MEMBERSHIP_POLICY_UPDATED", "membership_tiers",
-                    String.valueOf(tierId), "Cập nhật chính sách " + tier.get("tier_name")
-                            + ": mốc=" + minPoints + ", ưu đãi=" + discountRate + "%" + ", hệ số điểm=" + pointMultiplier);
-            return null;
-        });
+            previous = current;
+        }
+        dao.updateTierPolicy(tierId, minPoints, discountRate, pointMultiplier);
+        dao.recalculateAllCustomerTiers();
+        dao.insertAuditLog(
+                account.getAccountId(), "MEMBERSHIP_POLICY_UPDATED", "membership_tiers",
+                String.valueOf(tierId), "Cập nhật chính sách " + tier.get("tier_name")
+                        + ": mốc=" + minPoints + ", ưu đãi=" + discountRate + "%" + ", hệ số điểm=" + pointMultiplier);
     }
 
     public String createWarranty(String customerId, long invoiceDetailId, String issue)
@@ -190,41 +185,39 @@ public class CustomerService extends BaseService<CustomerDAO> {
         if (issue == null || issue.trim().isEmpty()) {
             throw new IllegalArgumentException("Mô tả lỗi không được để trống.");
         }
-        return dao.transaction(con -> {
-            Map<String, Object> purchase = dao.findWarrantyPurchase(con, invoiceDetailId);
-            if (purchase == null) {
-                throw new IllegalArgumentException("Không tìm thấy sản phẩm đã mua.");
-            }
-            if (!String.valueOf(purchase.get("customer_id")).equals(customerId)) {
-                throw new IllegalArgumentException("Sản phẩm không thuộc khách hàng đã chọn.");
-            }
-            String invoiceStatus = String.valueOf(purchase.get("status"));
-            if (!"PAID".equals(invoiceStatus) && !"PARTIAL_REFUND".equals(invoiceStatus)) {
-                throw new IllegalArgumentException( "Hóa đơn không còn đủ điều kiện tiếp nhận bảo hành.");
-            }
-            int remaining = ((Number) purchase.get("remaining_qty")).intValue();
-            if (remaining <= 0) {
-                throw new IllegalArgumentException( "Sản phẩm này đã được trả/hoàn toàn bộ, không thể tiếp nhận bảo hành.");
-            }
-            LocalDate purchaseDate = ((java.sql.Timestamp) purchase.get("created_at")) .toLocalDateTime() .toLocalDate();
-            int months = ((Number) purchase.get("warranty_months")).intValue();
-            LocalDate warrantyEnd = purchaseDate.plusMonths(months);
-            if (warrantyEnd.isBefore(LocalDate.now())) {
-                throw new IllegalArgumentException( "Sản phẩm đã hết hạn bảo hành từ " + warrantyEnd + ".");
-            }
-            if (dao.activeWarrantyCount(con, invoiceDetailId) >= remaining) {
-                throw new IllegalArgumentException( "Sản phẩm này đang có phiếu bảo hành chưa kết thúc.");
-            }
-            String warrantyId = Ids.next("BH");
-            dao.insertWarranty(
-                    con, warrantyId, customerId, invoiceDetailId,
-                    purchase.get("product_id"), issue.trim(), warrantyEnd, account.getEmployee().getEmployeeId());
-            dao.insertWarrantyHistory( con, warrantyId, null, "REPAIRING", account.getEmployee().getEmployeeId(), "Tiếp nhận bảo hành");
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "WARRANTY_CREATED", "warranties",
-                    warrantyId, "Tiếp nhận bảo hành cho invoice_detail=" + invoiceDetailId);
-            return warrantyId;
-        });
+        Map<String, Object> purchase = dao.findWarrantyPurchase(invoiceDetailId);
+        if (purchase == null) {
+            throw new IllegalArgumentException("Không tìm thấy sản phẩm đã mua.");
+        }
+        if (!String.valueOf(purchase.get("customer_id")).equals(customerId)) {
+            throw new IllegalArgumentException("Sản phẩm không thuộc khách hàng đã chọn.");
+        }
+        String invoiceStatus = String.valueOf(purchase.get("status"));
+        if (!"PAID".equals(invoiceStatus) && !"PARTIAL_REFUND".equals(invoiceStatus)) {
+            throw new IllegalArgumentException( "Hóa đơn không còn đủ điều kiện tiếp nhận bảo hành.");
+        }
+        int remaining = ((Number) purchase.get("remaining_qty")).intValue();
+        if (remaining <= 0) {
+            throw new IllegalArgumentException( "Sản phẩm này đã được trả/hoàn toàn bộ, không thể tiếp nhận bảo hành.");
+        }
+        LocalDate purchaseDate = ((java.sql.Timestamp) purchase.get("created_at")) .toLocalDateTime() .toLocalDate();
+        int months = ((Number) purchase.get("warranty_months")).intValue();
+        LocalDate warrantyEnd = purchaseDate.plusMonths(months);
+        if (warrantyEnd.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException( "Sản phẩm đã hết hạn bảo hành từ " + warrantyEnd + ".");
+        }
+        if (dao.activeWarrantyCount(invoiceDetailId) >= remaining) {
+            throw new IllegalArgumentException( "Sản phẩm này đang có phiếu bảo hành chưa kết thúc.");
+        }
+        String warrantyId = Ids.next("BH");
+        dao.insertWarranty(
+                warrantyId, customerId, invoiceDetailId,
+                purchase.get("product_id"), issue.trim(), warrantyEnd, account.getEmployee().getEmployeeId());
+        dao.insertWarrantyHistory( warrantyId, null, "REPAIRING", account.getEmployee().getEmployeeId(), "Tiếp nhận bảo hành");
+        dao.insertAuditLog(
+                account.getAccountId(), "WARRANTY_CREATED", "warranties",
+                warrantyId, "Tiếp nhận bảo hành cho invoice_detail=" + invoiceDetailId);
+        return warrantyId;
     }
 
     public BigDecimal calculateReplacementCharge(String warrantyId, BigDecimal accessoryFee)
@@ -253,34 +246,31 @@ public class CustomerService extends BaseService<CustomerDAO> {
         Account account = requireCustomerServicePermission("WARRANTY_MANAGE");
         String status = newStatus == null ? "" : newStatus.trim();
         BigDecimal fee = accessoryFee == null ? BigDecimal.ZERO : accessoryFee;
-        dao.transaction(con -> {
-            Map<String, Object> row = dao.findWarrantyStatus(con, id);
-            if (row == null) {
-                throw new IllegalArgumentException("Không tìm thấy phiếu bảo hành.");
+        Map<String, Object> row = dao.findWarrantyStatus(id);
+        if (row == null) {
+            throw new IllegalArgumentException("Không tìm thấy phiếu bảo hành.");
+        }
+        String oldStatus = String.valueOf(row.get("status"));
+        if (oldStatus.equals(status)) {
+            throw new IllegalArgumentException("Phiếu đã ở trạng thái này.");
+        }
+        if (!isValidWarrantyTransition(oldStatus, status)) {
+            throw new IllegalArgumentException( "Không thể chuyển bảo hành từ '" + oldStatus + "' sang '" + status + "'.");
+        }
+        if (("REJECTED".equals(status) || "REPLACEMENT".equals(status)) && (note == null || note.trim().isEmpty())) {
+            throw new IllegalArgumentException( "Vui lòng nhập ghi chú/lý do cho trạng thái này.");
+        }
+        BigDecimal replacementCharge = null;
+        if ("REPLACEMENT".equals(status)) {
+            if (fee.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Phí phụ kiện không được âm.");
             }
-            String oldStatus = String.valueOf(row.get("status"));
-            if (oldStatus.equals(status)) {
-                throw new IllegalArgumentException("Phiếu đã ở trạng thái này.");
-            }
-            if (!isValidWarrantyTransition(oldStatus, status)) {
-                throw new IllegalArgumentException( "Không thể chuyển bảo hành từ '" + oldStatus + "' sang '" + status + "'.");
-            }
-            if (("REJECTED".equals(status) || "REPLACEMENT".equals(status)) && (note == null || note.trim().isEmpty())) {
-                throw new IllegalArgumentException( "Vui lòng nhập ghi chú/lý do cho trạng thái này.");
-            }
-            BigDecimal replacementCharge = null;
-            if ("REPLACEMENT".equals(status)) {
-                if (fee.compareTo(BigDecimal.ZERO) < 0) {
-                    throw new IllegalArgumentException("Phí phụ kiện không được âm.");
-                }
-                Map<String, Object> warranty = dao.findWarrantyChargeData(con, id);
-                replacementCharge = calculateReplacementCharge(warranty, fee);
-            }
-            dao.updateWarrantyState(con, id, status, replacementCharge);
-            dao.insertWarrantyHistory( con, id, oldStatus, status, account.getEmployee().getEmployeeId(), emptyToNull(note));
-            dao.insertAuditLog( con, account.getAccountId(), "WARRANTY_STATUS_CHANGED", "warranties", id, oldStatus + " -> " + status);
-            return null;
-        });
+            Map<String, Object> warranty = dao.findWarrantyChargeData(id);
+            replacementCharge = calculateReplacementCharge(warranty, fee);
+        }
+        dao.updateWarrantyState(id, status, replacementCharge);
+        dao.insertWarrantyHistory( id, oldStatus, status, account.getEmployee().getEmployeeId(), emptyToNull(note));
+        dao.insertAuditLog( account.getAccountId(), "WARRANTY_STATUS_CHANGED", "warranties", id, oldStatus + " -> " + status);
     }
 
     private BigDecimal calculateReplacementCharge(
@@ -320,37 +310,32 @@ public class CustomerService extends BaseService<CustomerDAO> {
             throw new IllegalArgumentException("Nội dung khiếu nại quá ngắn.");
         }
         String priority = classifyComplaint(body);
-        return dao.transaction(con -> {
-            String complaintId = Ids.next("KN");
-            String employeeId = account.getEmployee().getEmployeeId();
-            dao.insertComplaint( con, complaintId, emptyToNull(customerId), tel, body, priority, employeeId);
-            dao.insertComplaintHistory( con, complaintId, null, "NEW", employeeId, "Tiếp nhận khiếu nại");
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "COMPLAINT_CREATED", "complaints",
-                    complaintId, "Tiếp nhận khiếu nại - ưu tiên " + priority);
-            return complaintId;
-        });
+        String complaintId = Ids.next("KN");
+        String employeeId = account.getEmployee().getEmployeeId();
+        dao.insertComplaint( complaintId, emptyToNull(customerId), tel, body, priority, employeeId);
+        dao.insertComplaintHistory( complaintId, null, "NEW", employeeId, "Tiếp nhận khiếu nại");
+        dao.insertAuditLog(
+                account.getAccountId(), "COMPLAINT_CREATED", "complaints",
+                complaintId, "Tiếp nhận khiếu nại - ưu tiên " + priority);
+        return complaintId;
     }
 
     public void refreshComplaintEscalation() throws Exception {
-        dao.transaction(con -> {
-            List<Map<String, Object>> overdue = dao.findOverdueComplaints(con);
-            if (overdue.isEmpty()) {
-                return null;
+        List<Map<String, Object>> overdue = dao.findOverdueComplaints();
+        if (overdue.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> managers = dao.findActiveManagers();
+        for (Map<String, Object> complaint : overdue) {
+            String complaintId = String.valueOf(complaint.get("complaint_id"));
+            dao.markComplaintEscalated(complaintId);
+            for (Map<String, Object> manager : managers) {
+                dao.insertNotification(
+                        manager.get("employee_id"), "Khiếu nại quá 48 giờ", "Khiếu nại " + complaintId
+                                + " (" + Formats.safe(complaint.get("customer_phone")) + ")" + " chưa được xử lý quá 48 giờ.");
             }
-            List<Map<String, Object>> managers = dao.findActiveManagers(con);
-            for (Map<String, Object> complaint : overdue) {
-                String complaintId = String.valueOf(complaint.get("complaint_id"));
-                dao.markComplaintEscalated(con, complaintId);
-                for (Map<String, Object> manager : managers) {
-                    dao.insertNotification(
-                            con, manager.get("employee_id"), "Khiếu nại quá 48 giờ", "Khiếu nại " + complaintId
-                                    + " (" + Formats.safe(complaint.get("customer_phone")) + ")" + " chưa được xử lý quá 48 giờ.");
-                }
-                dao.insertAuditLog( con, null, "COMPLAINT_ESCALATED", "complaints", complaintId, "Tự động leo thang do quá hạn 48 giờ");
-            }
-            return null;
-        });
+            dao.insertAuditLog( null, "COMPLAINT_ESCALATED", "complaints", complaintId, "Tự động leo thang do quá hạn 48 giờ");
+        }
     }
 
     private String classifyComplaint(String text) {
@@ -369,27 +354,24 @@ public class CustomerService extends BaseService<CustomerDAO> {
     public void updateComplaintStatus(String id, String newStatus, String note) throws Exception {
         Account account = requireCustomerServicePermission("COMPLAINT_MANAGE");
         String status = newStatus == null ? "" : newStatus.trim();
-        dao.transaction(con -> {
-            Map<String, Object> row = dao.findComplaintStatus(con, id);
-            if (row == null) {
-                throw new IllegalArgumentException("Không tìm thấy khiếu nại.");
-            }
-            String oldStatus = String.valueOf(row.get("status"));
-            if (oldStatus.equals(status)) {
-                throw new IllegalArgumentException("Khiếu nại đã ở trạng thái này.");
-            }
-            if (!isValidComplaintTransition(oldStatus, status)) {
-                throw new IllegalArgumentException( "Không thể chuyển khiếu nại từ '" + oldStatus + "' sang '" + status + "'.");
-            }
-            if (("RESOLVED".equals(status) || "CLOSED".equals(status)) && (note == null || note.trim().isEmpty())) {
-                throw new IllegalArgumentException( "Vui lòng ghi rõ kết quả xử lý trước khi hoàn tất/đóng khiếu nại.");
-            }
-            String employeeId = account.getEmployee().getEmployeeId();
-            dao.updateComplaintStatus(con, id, status, employeeId);
-            dao.insertComplaintHistory( con, id, oldStatus, status, employeeId, emptyToNull(note));
-            dao.insertAuditLog( con, account.getAccountId(), "COMPLAINT_STATUS_CHANGED", "complaints", id, oldStatus + " -> " + status);
-            return null;
-        });
+        Map<String, Object> row = dao.findComplaintStatus(id);
+        if (row == null) {
+            throw new IllegalArgumentException("Không tìm thấy khiếu nại.");
+        }
+        String oldStatus = String.valueOf(row.get("status"));
+        if (oldStatus.equals(status)) {
+            throw new IllegalArgumentException("Khiếu nại đã ở trạng thái này.");
+        }
+        if (!isValidComplaintTransition(oldStatus, status)) {
+            throw new IllegalArgumentException( "Không thể chuyển khiếu nại từ '" + oldStatus + "' sang '" + status + "'.");
+        }
+        if (("RESOLVED".equals(status) || "CLOSED".equals(status)) && (note == null || note.trim().isEmpty())) {
+            throw new IllegalArgumentException( "Vui lòng ghi rõ kết quả xử lý trước khi hoàn tất/đóng khiếu nại.");
+        }
+        String employeeId = account.getEmployee().getEmployeeId();
+        dao.updateComplaintStatus(id, status, employeeId);
+        dao.insertComplaintHistory( id, oldStatus, status, employeeId, emptyToNull(note));
+        dao.insertAuditLog( account.getAccountId(), "COMPLAINT_STATUS_CHANGED", "complaints", id, oldStatus + " -> " + status);
     }
 
     private boolean isValidComplaintTransition(String oldStatus, String newStatus) {
@@ -406,5 +388,47 @@ public class CustomerService extends BaseService<CustomerDAO> {
             return "CLOSED".equals(newStatus);
         }
         return false;
+    }
+
+    private String emptyToNull(String chuoi) {
+        if (chuoi == null) {
+            return null;
+        }
+        if (chuoi.trim().isEmpty()) {
+            return null;
+        }
+        return chuoi.trim();
+    }
+
+    private Account requirePermission(String maQuyen) {
+        Account taiKhoan = SessionManager.getCurrentAccount();
+        if (taiKhoan == null || taiKhoan.getEmployee() == null || taiKhoan.getRole() == null) {
+            throw new IllegalStateException("Phiên đăng nhập không hợp lệ.");
+        }
+        if (!SessionManager.hasPermission(maQuyen)) {
+            throw new IllegalStateException("Tài khoản chưa được cấp quyền thực hiện chức năng này.");
+        }
+        return taiKhoan;
+    }
+
+    private Account requireCustomerServicePermission(String maQuyen) {
+        return requirePermission(maQuyen);
+    }
+
+    // ===== UI gọi trực tiếp SQL qua Service =====
+    public java.util.List<Map<String, Object>> query(String sql, Object... thamSo) throws Exception {
+        return dao.query(sql, thamSo);
+    }
+
+    public Map<String, Object> one(String sql, Object... thamSo) throws Exception {
+        return dao.one(sql, thamSo);
+    }
+
+    public Object scalar(String sql, Object... thamSo) throws Exception {
+        return dao.scalar(sql, thamSo);
+    }
+
+    public int update(String sql, Object... thamSo) throws Exception {
+        return dao.update(sql, thamSo);
     }
 }

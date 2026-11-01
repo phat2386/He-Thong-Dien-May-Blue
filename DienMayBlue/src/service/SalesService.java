@@ -2,7 +2,6 @@ package service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,18 +13,18 @@ import java.util.Map;
 
 import dao.SalesDAO;
 import entity.Account;
+import util.SessionManager;
 import util.Formats;
 
-public class SalesService extends BaseService<SalesDAO> {
+public class SalesService {
+
+    private final SalesDAO dao = new SalesDAO();
 
     private static final LinkedHashMap<String, Integer> DRAFT_ITEMS = new LinkedHashMap<>();
 
     public static final BigDecimal POINT_VND_PER_POINT = new BigDecimal("10000");
     public static final BigDecimal DEFAULT_BONUS_RATE = new BigDecimal("0.03");
 
-    public SalesService() {
-        super(new SalesDAO());
-    }
 
     public static synchronized void setDraftItems(Map<String, Integer> items) {
         DRAFT_ITEMS.clear();
@@ -56,14 +55,11 @@ public class SalesService extends BaseService<SalesDAO> {
 
     public void ensureCanSell() throws Exception {
         Account account = requirePermission("INVOICE_CREATE");
-        dao.transaction(con -> {
-            ensureCanSell(con, account);
-            return null;
-        });
+        ensureCanSell(account);
     }
 
-    protected void ensureCanSell(Connection con, Account account) throws Exception {
-        Map<String, Object> state = dao.findAccountSaleState(con, account.getAccountId());
+    protected void ensureCanSell(Account account) throws Exception {
+        Map<String, Object> state = dao.findAccountSaleState(account.getAccountId());
         if (state == null) {
             throw new IllegalStateException("Tài khoản không còn tồn tại trong hệ thống.");
         }
@@ -77,7 +73,7 @@ public class SalesService extends BaseService<SalesDAO> {
         if (!"SALES".equals(roleCode)) {
             return;
         }
-        if (!dao.hasCurrentShift(con, account.getEmployee().getEmployeeId())) {
+        if (!dao.hasCurrentShift(account.getEmployee().getEmployeeId())) {
             throw new IllegalStateException( "Bạn chưa có ca làm việc hợp lệ tại thời điểm hiện tại.");
         }
     }
@@ -108,97 +104,95 @@ public class SalesService extends BaseService<SalesDAO> {
             }
             quantities.merge(item.productId.trim(), item.quantity, Integer::sum);
         }
-        // Bước 3: toàn bộ việc lập hóa đơn chạy trong 1 transaction, lỗi thì hoàn tác hết
-        return dao.transaction(con -> {
-            ensureCanSell(con, account);
-            String employeeId = account.getEmployee().getEmployeeId();
+        // Bước 3: toàn bộ việc lập hóa đơn chạy trong một lần chạy (không dùng transaction)
+        ensureCanSell(account);
+        String employeeId = account.getEmployee().getEmployeeId();
         // Bước 4: lấy ưu đãi theo hạng thành viên của khách
-            BigDecimal memberDiscountRate = BigDecimal.ZERO;
-            BigDecimal pointMultiplier = BigDecimal.ONE;
-            String normalizedCustomerId = customerId == null ? "" : customerId.trim();
-            if (!normalizedCustomerId.isEmpty()) {
-                Map<String, Object> customer = dao.findCustomerMembership(con, normalizedCustomerId);
-                if (customer == null || !"ACTIVE".equals(String.valueOf(customer.get("status")))) {
-                    throw new IllegalArgumentException( "Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
-                }
-                memberDiscountRate = (BigDecimal) customer.get("discount_rate");
-                pointMultiplier = (BigDecimal) customer.get("point_multiplier");
+        BigDecimal memberDiscountRate = BigDecimal.ZERO;
+        BigDecimal pointMultiplier = BigDecimal.ONE;
+        String normalizedCustomerId = customerId == null ? "" : customerId.trim();
+        if (!normalizedCustomerId.isEmpty()) {
+            Map<String, Object> customer = dao.findCustomerMembership(normalizedCustomerId);
+            if (customer == null || !"ACTIVE".equals(String.valueOf(customer.get("status")))) {
+                throw new IllegalArgumentException( "Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
             }
+            memberDiscountRate = (BigDecimal) customer.get("discount_rate");
+            pointMultiplier = (BigDecimal) customer.get("point_multiplier");
+        }
         // Bước 5: sinh mã hóa đơn mới
-            String invoiceId = nextInvoiceId(con);
-            BigDecimal subtotal = BigDecimal.ZERO;
-            BigDecimal discountTotal = BigDecimal.ZERO;
-            List<InvoiceLine> lines = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : quantities.entrySet()) {
-                String productId = entry.getKey();
-                int quantity = entry.getValue();
-                Map<String, Object> product = dao.findProductForInvoice(con, productId);
-                if (product == null) {
-                    throw new IllegalArgumentException("Không tìm thấy sản phẩm " + productId);
-                }
-                if (!"ACTIVE".equals(String.valueOf(product.get("status")))) {
-                    throw new IllegalArgumentException( "Sản phẩm " + productId + " không còn kinh doanh hoặc đã hết hàng.");
-                }
-                int stock = ((Number) product.get("stock_quantity")).intValue();
-                if (quantity > stock) {
-                    throw new IllegalArgumentException( "Sản phẩm " + productId + " chỉ còn " + stock + " sản phẩm.");
-                }
-                BigDecimal salePrice = (BigDecimal) product.get("sale_price");
-                BigDecimal costPrice = (BigDecimal) product.get("cost_price");
-                BigDecimal gross = salePrice.multiply(BigDecimal.valueOf(quantity));
-                int categoryId = ((Number) product.get("category_id")).intValue();
+        String invoiceId = nextInvoiceId();
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal discountTotal = BigDecimal.ZERO;
+        List<InvoiceLine> lines = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : quantities.entrySet()) {
+            String productId = entry.getKey();
+            int quantity = entry.getValue();
+            Map<String, Object> product = dao.findProductForInvoice(productId);
+            if (product == null) {
+                throw new IllegalArgumentException("Không tìm thấy sản phẩm " + productId);
+            }
+            if (!"ACTIVE".equals(String.valueOf(product.get("status")))) {
+                throw new IllegalArgumentException( "Sản phẩm " + productId + " không còn kinh doanh hoặc đã hết hàng.");
+            }
+            int stock = ((Number) product.get("stock_quantity")).intValue();
+            if (quantity > stock) {
+                throw new IllegalArgumentException( "Sản phẩm " + productId + " chỉ còn " + stock + " sản phẩm.");
+            }
+            BigDecimal salePrice = (BigDecimal) product.get("sale_price");
+            BigDecimal costPrice = (BigDecimal) product.get("cost_price");
+            BigDecimal gross = salePrice.multiply(BigDecimal.valueOf(quantity));
+            int categoryId = ((Number) product.get("category_id")).intValue();
         // Bước 6: với mỗi sản phẩm, lấy giảm giá cao hơn giữa khuyến mãi và ưu đãi thành viên
-                BigDecimal promotionDiscount = bestPromotionDiscount( con, productId, categoryId, gross, quantity);
-                BigDecimal memberDiscount = gross .multiply(memberDiscountRate) .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                BigDecimal discount = promotionDiscount.max(memberDiscount).min(gross);
-                BigDecimal lineTotal = gross.subtract(discount).max(BigDecimal.ZERO);
-                lines.add(new InvoiceLine( productId, quantity, salePrice, costPrice, discount, lineTotal));
-                subtotal = subtotal.add(gross);
-                discountTotal = discountTotal.add(discount);
-            }
+            BigDecimal promotionDiscount = bestPromotionDiscount( productId, categoryId, gross, quantity);
+            BigDecimal memberDiscount = gross .multiply(memberDiscountRate) .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            BigDecimal discount = promotionDiscount.max(memberDiscount).min(gross);
+            BigDecimal lineTotal = gross.subtract(discount).max(BigDecimal.ZERO);
+            lines.add(new InvoiceLine( productId, quantity, salePrice, costPrice, discount, lineTotal));
+            subtotal = subtotal.add(gross);
+            discountTotal = discountTotal.add(discount);
+        }
         // Bước 7: tính tổng tiền phải trả
-            BigDecimal total = subtotal.subtract(discountTotal);
-            if (total.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("Tổng thanh toán phải lớn hơn 0.");
+        BigDecimal total = subtotal.subtract(discountTotal);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Tổng thanh toán phải lớn hơn 0.");
+        }
+        dao.insertInvoice(
+                invoiceId, emptyToNull(normalizedCustomerId), employeeId, subtotal, discountTotal, total, emptyToNull(note));
+        for (InvoiceLine line : lines) {
+            int updated = dao.decreaseProductStock(line.productId, line.quantity);
+            if (updated != 1) {
+                throw new IllegalArgumentException(
+                        "Tồn kho của sản phẩm " + line.productId + " vừa thay đổi. Vui lòng kiểm tra lại hóa đơn.");
             }
-            dao.insertInvoice(
-                    con, invoiceId, emptyToNull(normalizedCustomerId), employeeId, subtotal, discountTotal, total, emptyToNull(note));
-            for (InvoiceLine line : lines) {
-                int updated = dao.decreaseProductStock(con, line.productId, line.quantity);
-                if (updated != 1) {
-                    throw new IllegalArgumentException(
-                            "Tồn kho của sản phẩm " + line.productId + " vừa thay đổi. Vui lòng kiểm tra lại hóa đơn.");
-                }
-                dao.insertInvoiceDetail(
-                        con, invoiceId, line.productId, line.quantity, line.salePrice, line.costPrice, line.discount, line.lineTotal);
-            }
+            dao.insertInvoiceDetail(
+                    invoiceId, line.productId, line.quantity, line.salePrice, line.costPrice, line.discount, line.lineTotal);
+        }
         // Bước 8: ghi thanh toán
-            dao.insertPayment( con, invoiceId, method, total, emptyToNull(transactionRef));
-            if (!normalizedCustomerId.isEmpty()) {
+        dao.insertPayment( invoiceId, method, total, emptyToNull(transactionRef));
+        if (!normalizedCustomerId.isEmpty()) {
         // Bước 9: cộng điểm tích lũy (10.000đ = 1 điểm, nhân hệ số hạng) và cập nhật hạng
-                BigDecimal basePoints = total.divide( POINT_VND_PER_POINT, 0, RoundingMode.DOWN);
-                int points = basePoints .multiply(pointMultiplier) .setScale(0, RoundingMode.DOWN) .intValue();
-                if (points > 0) {
-                    dao.insertEarnedPoints(con, normalizedCustomerId, invoiceId, points);
-                    dao.addCustomerPoints(con, normalizedCustomerId, points);
-                    dao.refreshCustomerTier(con, normalizedCustomerId);
-                }
+            BigDecimal basePoints = total.divide( POINT_VND_PER_POINT, 0, RoundingMode.DOWN);
+            int points = basePoints .multiply(pointMultiplier) .setScale(0, RoundingMode.DOWN) .intValue();
+            if (points > 0) {
+                dao.insertEarnedPoints(normalizedCustomerId, invoiceId, points);
+                dao.addCustomerPoints(normalizedCustomerId, points);
+                dao.refreshCustomerTier(normalizedCustomerId);
             }
+        }
         // Thưởng bán hàng 3% cho nhân viên, rồi ghi nhật ký
-            BigDecimal bonus = total .multiply(DEFAULT_BONUS_RATE) .setScale(2, RoundingMode.HALF_UP);
-            dao.insertSalesBonus( con, employeeId, invoiceId, total, DEFAULT_BONUS_RATE, bonus);
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "INVOICE_CREATED", "invoices", invoiceId, "Lập hóa đơn bán hàng; thanh toán=" + method);
-            return invoiceId;
-        });
+        BigDecimal bonus = total .multiply(DEFAULT_BONUS_RATE) .setScale(2, RoundingMode.HALF_UP);
+        dao.insertSalesBonus( employeeId, invoiceId, total, DEFAULT_BONUS_RATE, bonus);
+        dao.insertAuditLog(
+                account.getAccountId(), "INVOICE_CREATED", "invoices", invoiceId, "Lập hóa đơn bán hàng; thanh toán=" + method);
+        return invoiceId;
     }
 
     // Sinh mã hóa đơn kế tiếp theo dạng HD00001.
-    private String nextInvoiceId(Connection con) throws SQLException {
-        int next = Math.max(dao.maxShortInvoiceNumber(con), dao.invoiceCount(con)) + 1;
+    private String nextInvoiceId() throws SQLException {
+        int next = Math.max(dao.maxShortInvoiceNumber(), dao.invoiceCount()) + 1;
         while (next <= 99999) {
             String candidate = String.format("HD%05d", next);
-            if (!dao.invoiceIdExists(con, candidate)) {
+            if (!dao.invoiceIdExists(candidate)) {
                 return candidate;
             }
             next++;
@@ -207,8 +201,8 @@ public class SalesService extends BaseService<SalesDAO> {
     }
 
     private BigDecimal bestPromotionDiscount(
-            Connection con, String productId, int categoryId, BigDecimal gross, int quantity) throws SQLException {
-        List<Map<String, Object>> rows = dao.findActivePromotions(con, productId, categoryId);
+            String productId, int categoryId, BigDecimal gross, int quantity) throws SQLException {
+        List<Map<String, Object>> rows = dao.findActivePromotions(productId, categoryId);
         BigDecimal best = BigDecimal.ZERO;
         for (Map<String, Object> row : rows) {
             String type = String.valueOf(row.get("discount_type"));
@@ -227,27 +221,24 @@ public class SalesService extends BaseService<SalesDAO> {
         if (from == null || to == null || from.isAfter(to)) {
             throw new IllegalArgumentException("Kỳ chốt thưởng không hợp lệ.");
         }
-        dao.transaction(con -> {
-            if (dao.overlappingFinalizedStatementCount(con, from, to) > 0) {
-                throw new IllegalStateException( "Khoảng thời gian này bị trùng với một bảng kê thưởng đã chốt.");
-            }
-            List<Map<String, Object>> rows = dao.openBonusesByEmployee(con, from, to);
-            if (rows.isEmpty()) {
-                throw new IllegalStateException( "Không có dữ liệu thưởng chưa chốt trong kỳ đã chọn.");
-            }
-            long statementId = dao.insertBonusStatement( con, from, to, account.getEmployee().getEmployeeId());
-            for (Map<String, Object> row : rows) {
-                dao.insertBonusStatementDetail( con, statementId, row.get("employee_id"), row.get("total_sales"), row.get("total_bonus"));
-                dao.insertNotification(
-                        con, row.get("employee_id"), "Bảng kê thưởng đã chốt", "Kỳ " + from + " đến " + to
-                                + " - thưởng: " + Formats.money(row.get("total_bonus")));
-            }
-            dao.markBonusesFinalized(con, from, to);
-            dao.insertAuditLog(
-                    con, account.getAccountId(), "BONUS_FINALIZED", "bonus_statements",
-                    String.valueOf(statementId), "Chốt bảng kê thưởng kỳ " + from + " đến " + to);
-            return null;
-        });
+        if (dao.overlappingFinalizedStatementCount(from, to) > 0) {
+            throw new IllegalStateException( "Khoảng thời gian này bị trùng với một bảng kê thưởng đã chốt.");
+        }
+        List<Map<String, Object>> rows = dao.openBonusesByEmployee(from, to);
+        if (rows.isEmpty()) {
+            throw new IllegalStateException( "Không có dữ liệu thưởng chưa chốt trong kỳ đã chọn.");
+        }
+        long statementId = dao.insertBonusStatement( from, to, account.getEmployee().getEmployeeId());
+        for (Map<String, Object> row : rows) {
+            dao.insertBonusStatementDetail( statementId, row.get("employee_id"), row.get("total_sales"), row.get("total_bonus"));
+            dao.insertNotification(
+                    row.get("employee_id"), "Bảng kê thưởng đã chốt", "Kỳ " + from + " đến " + to
+                            + " - thưởng: " + Formats.money(row.get("total_bonus")));
+        }
+        dao.markBonusesFinalized(from, to);
+        dao.insertAuditLog(
+                account.getAccountId(), "BONUS_FINALIZED", "bonus_statements",
+                String.valueOf(statementId), "Chốt bảng kê thưởng kỳ " + from + " đến " + to);
     }
 
     private static final class InvoiceLine {
@@ -266,5 +257,43 @@ public class SalesService extends BaseService<SalesDAO> {
             this.discount = discount;
             this.lineTotal = lineTotal;
         }
+    }
+
+    private String emptyToNull(String chuoi) {
+        if (chuoi == null) {
+            return null;
+        }
+        if (chuoi.trim().isEmpty()) {
+            return null;
+        }
+        return chuoi.trim();
+    }
+
+    private Account requirePermission(String maQuyen) {
+        Account taiKhoan = SessionManager.getCurrentAccount();
+        if (taiKhoan == null || taiKhoan.getEmployee() == null || taiKhoan.getRole() == null) {
+            throw new IllegalStateException("Phiên đăng nhập không hợp lệ.");
+        }
+        if (!SessionManager.hasPermission(maQuyen)) {
+            throw new IllegalStateException("Tài khoản chưa được cấp quyền thực hiện chức năng này.");
+        }
+        return taiKhoan;
+    }
+
+    // ===== UI gọi trực tiếp SQL qua Service =====
+    public java.util.List<Map<String, Object>> query(String sql, Object... thamSo) throws Exception {
+        return dao.query(sql, thamSo);
+    }
+
+    public Map<String, Object> one(String sql, Object... thamSo) throws Exception {
+        return dao.one(sql, thamSo);
+    }
+
+    public Object scalar(String sql, Object... thamSo) throws Exception {
+        return dao.scalar(sql, thamSo);
+    }
+
+    public int update(String sql, Object... thamSo) throws Exception {
+        return dao.update(sql, thamSo);
     }
 }

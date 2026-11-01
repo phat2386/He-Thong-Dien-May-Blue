@@ -176,27 +176,24 @@ public class PromotionManagementPanel extends BaseScreenPanel {
             final LinkedHashSet<String> fproducts=new LinkedHashSet<String>(products);
             final LinkedHashSet<Integer> fcategories=new LinkedHashSet<Integer>(categories);
             final LocalDateTime fs=s,fe=e;final BigDecimal fv=v;final String fcode=promotionCode,fname=promotionName,ftype=discountType;
-            service.transaction(con->{
-                for(Map<String,Object> product:affected){
-                    String pid=String.valueOf(product.get("product_id"));
-                    int cid=((Number)product.get("category_id")).intValue();
-                    Map<String,Object> overlap=service.one(con, "SELECT TOP 1 pr.promotion_code,pr.promotion_name FROM promotions pr "
-                          + "LEFT JOIN promotion_products pp ON pp.promotion_id=pr.promotion_id "
-                          + "LEFT JOIN promotion_categories pc ON pc.promotion_id=pr.promotion_id "
-                          + "WHERE pr.status IN ('SCHEDULED','ACTIVE') AND ? < pr.end_at AND ? > pr.start_at "
-                          + "AND (pp.product_id=? OR pc.category_id=?) ORDER BY pr.start_at",fs,fe,pid,cid);
-                    if(overlap!=null)throw new IllegalArgumentException("Sản phẩm "+pid+" vừa phát sinh khuyến mãi trùng thời gian. Hãy tải lại và kiểm tra.");
-                }
-                long promotionId=service.insertAndKey(con,"INSERT INTO promotions(promotion_code,promotion_name,discount_type,discount_value,start_at,end_at,status,created_by) "
-                        +"VALUES(?,?,?,?,?,?,CASE WHEN ?<=SYSDATETIME() THEN 'ACTIVE' ELSE 'SCHEDULED' END,?)",
-                        fcode,fname,ftype,fv,fs,fe,fs,SessionManager.getCurrentAccount().getEmployee().getEmployeeId());
-                for(String pid:fproducts)service.update(con,"INSERT INTO promotion_products(promotion_id,product_id) VALUES(?,?)",promotionId,pid);
-                for(Integer cid:fcategories)service.update(con,"INSERT INTO promotion_categories(promotion_id,category_id) VALUES(?,?)",promotionId,cid);
-                service.update(con,"INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
-                        SessionManager.getCurrentAccount().getAccountId(),"PROMOTION_CREATED","promotions",String.valueOf(promotionId),
-                        "Tạo chương trình "+fcode+"; phạm vi="+affected.size()+" sản phẩm");
-                return null;
-            });
+            for(Map<String,Object> product:affected){
+                String pid=String.valueOf(product.get("product_id"));
+                int cid=((Number)product.get("category_id")).intValue();
+                Map<String,Object> overlap=service.one("SELECT TOP 1 pr.promotion_code,pr.promotion_name FROM promotions pr "
+                      + "LEFT JOIN promotion_products pp ON pp.promotion_id=pr.promotion_id "
+                      + "LEFT JOIN promotion_categories pc ON pc.promotion_id=pr.promotion_id "
+                      + "WHERE pr.status IN ('SCHEDULED','ACTIVE') AND ? < pr.end_at AND ? > pr.start_at "
+                      + "AND (pp.product_id=? OR pc.category_id=?) ORDER BY pr.start_at",fs,fe,pid,cid);
+                if(overlap!=null)throw new IllegalArgumentException("Sản phẩm "+pid+" vừa phát sinh khuyến mãi trùng thời gian. Hãy tải lại và kiểm tra.");
+            }
+            long promotionId=service.insertAndKey("INSERT INTO promotions(promotion_code,promotion_name,discount_type,discount_value,start_at,end_at,status,created_by) "
+                    +"VALUES(?,?,?,?,?,?,CASE WHEN ?<=SYSDATETIME() THEN 'ACTIVE' ELSE 'SCHEDULED' END,?)",
+                    fcode,fname,ftype,fv,fs,fe,fs,SessionManager.getCurrentAccount().getEmployee().getEmployeeId());
+            for(String pid:fproducts)service.update("INSERT INTO promotion_products(promotion_id,product_id) VALUES(?,?)",promotionId,pid);
+            for(Integer cid:fcategories)service.update("INSERT INTO promotion_categories(promotion_id,category_id) VALUES(?,?)",promotionId,cid);
+            service.update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
+                    SessionManager.getCurrentAccount().getAccountId(),"PROMOTION_CREATED","promotions",String.valueOf(promotionId),
+                    "Tạo chương trình "+fcode+"; phạm vi="+affected.size()+" sản phẩm");
             refreshData();
             info("Đã tạo chương trình khuyến mãi. Hệ thống sẽ tự áp dụng theo thời gian hiệu lực.");
         }catch(Exception ex){showError(ex);}
@@ -372,19 +369,16 @@ public class PromotionManagementPanel extends BaseScreenPanel {
         }
         if(!confirm("Xóa chương trình "+code+" - "+name+"? Dữ liệu phạm vi áp dụng của chương trình cũng sẽ được xóa."))return;
         try{
-            service.transaction(con->{
-                Map<String,Object> row=service.one(con,"SELECT promotion_id,status FROM promotions WHERE promotion_code=?",code);
-                if(row==null)throw new IllegalStateException("Chương trình không còn tồn tại.");
-                if(!"ENDED".equals(String.valueOf(row.get("status"))))
-                    throw new IllegalStateException("Chỉ được xóa chương trình đã kết thúc.");
-                int id=((Number)row.get("promotion_id")).intValue();
-                service.update(con,"DELETE FROM promotion_products WHERE promotion_id=?",id);
-                service.update(con,"DELETE FROM promotion_categories WHERE promotion_id=?",id);
-                service.update(con,"DELETE FROM promotions WHERE promotion_id=? AND status='ENDED'",id);
-                service.update(con,"INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
-                        SessionManager.getCurrentAccount().getAccountId(),"PROMOTION_DELETED","promotions",String.valueOf(id),"Xóa chương trình khuyến mãi đã kết thúc: "+code+" - "+name);
-                return null;
-            });
+            Map<String,Object> row=service.one("SELECT promotion_id,status FROM promotions WHERE promotion_code=?",code);
+            if(row==null)throw new IllegalStateException("Chương trình không còn tồn tại.");
+            if(!"ENDED".equals(String.valueOf(row.get("status"))))
+                throw new IllegalStateException("Chỉ được xóa chương trình đã kết thúc.");
+            int id=((Number)row.get("promotion_id")).intValue();
+            service.update("DELETE FROM promotion_products WHERE promotion_id=?",id);
+            service.update("DELETE FROM promotion_categories WHERE promotion_id=?",id);
+            service.update("DELETE FROM promotions WHERE promotion_id=? AND status='ENDED'",id);
+            service.update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)",
+                    SessionManager.getCurrentAccount().getAccountId(),"PROMOTION_DELETED","promotions",String.valueOf(id),"Xóa chương trình khuyến mãi đã kết thúc: "+code+" - "+name);
             refreshData();
             info("Đã xóa chương trình "+code+".");
         }catch(Exception ex){showError(ex);}

@@ -5,6 +5,8 @@ public abstract class BaseScreenPanel extends JPanel implements Refreshable {
     private static final long serialVersionUID=1L;
     protected final JPanel body=new JPanel(new BorderLayout(0,14));
     protected final JPanel actions=new JPanel(new WrapLayout(FlowLayout.LEFT,8,4));
+    protected final JPanel pnlBody=body;
+    protected final JPanel pnlActions=actions;
     protected final JLabel titleLabel=new JLabel();
     protected final JLabel subtitleLabel=new JLabel();
     protected BaseScreenPanel(String title,String subtitle){
