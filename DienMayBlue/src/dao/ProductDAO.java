@@ -83,7 +83,6 @@ public class ProductDAO {
         update("INSERT INTO audit_logs(account_id,action_code,entity_name,entity_id,detail) VALUES(?,?,?,?,?)", accountId, action,
                 entity, entityId, detail);
     }
-
     public List<Map<String, Object>> query(String sql, Object... thamSo) throws SQLException {
         List<Map<String, Object>> ketQua = new ArrayList<>();
         try (Connection con = ConnectDB.getConnection();
@@ -151,5 +150,26 @@ public class ProductDAO {
         for (int i = 0; i < thamSo.length; i++) {
             ps.setObject(i + 1, thamSo[i]);
         }
+    }
+
+    public List<Map<String, Object>> findStockReceipts(String keyword) throws SQLException {
+        String search = "%" + (keyword == null ? "" : keyword.trim()) + "%";
+        return query(
+                "SELECT d.debt_id,d.reference_code,s.supplier_name,d.description,d.original_amount,"
+              + "d.remaining_amount,d.status,d.created_at "
+              + "FROM supplier_debts d JOIN suppliers s ON s.supplier_id=d.supplier_id "
+              + "WHERE d.reference_code IS NOT NULL "
+              + "AND (d.reference_code LIKE ? OR s.supplier_name LIKE ?) "
+              + "ORDER BY d.created_at DESC,d.debt_id DESC",
+                search, search);
+    }
+
+    public Map<String, Object> findStockReceiptByCode(String receiptCode) throws SQLException {
+        return one(
+                "SELECT d.reference_code,s.supplier_name,s.phone,s.address,s.tax_code,d.description,"
+              + "d.original_amount,d.remaining_amount,d.status,d.due_date,d.created_at "
+              + "FROM supplier_debts d JOIN suppliers s ON s.supplier_id=d.supplier_id "
+              + "WHERE d.reference_code=?",
+                receiptCode);
     }
 }
