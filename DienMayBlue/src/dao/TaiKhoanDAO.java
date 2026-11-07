@@ -1,104 +1,127 @@
 package dao;
+
 import java.sql.*;
 import java.util.*;
 import connectDB.KetNoiCSDL;
 import entity.*;
+
 public class TaiKhoanDAO extends CoSoDAO {
+
+    // Các đoạn SQL dùng lại nhiều lần
+    private static final String TU_BANG = " FROM dbo.TaiKhoan tk JOIN dbo.NhanVien nv ON nv.MaNhanVien=tk.MaNhanVien ";
+
+    private static final String SQL_ID_VAI_TRO = "CASE WHEN tk.TenDangNhap='admin' THEN 1 WHEN nv.LoaiNhanVien=N'Quản lý' THEN 2 "
+        + "WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 3 WHEN nv.LoaiNhanVien=N'CSKH' THEN 4 ELSE 0 END";
+
+    private static final String SQL_MA_VAI_TRO = "CASE WHEN tk.TenDangNhap='admin' THEN 'ADMIN' WHEN nv.LoaiNhanVien=N'Quản lý' THEN 'MANAGER' "
+        + "WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 'SALES' WHEN nv.LoaiNhanVien=N'CSKH' THEN 'CUSTOMER_SERVICE' ELSE 'UNKNOWN' END";
+
+    private static final String SQL_TRANG_THAI_TK = "CASE tk.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Bị khóa' END";
+
+    private static final String SQL_TRANG_THAI_NV = "CASE nv.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Không hoạt động' END";
+
+    private static final String SQL_TAI_KHOAN = "SELECT tk.MaTaiKhoan account_id,tk.TenDangNhap username,tk.MatKhau password_hash,"
+        + SQL_TRANG_THAI_TK + " account_status,tk.SoLanDangNhapSai failed_attempts,tk.ThoiGianMoKhoa locked_until,tk.LanDangNhapCuoi last_login_at,"
+        + "nv.MaNhanVien employee_id,nv.HoTen full_name,nv.SoDienThoai phone,nv.Email email,nv.LoaiNhanVien department,nv.NgayVaoLam join_date,"
+        + SQL_TRANG_THAI_NV + " employee_status," + SQL_ID_VAI_TRO + " role_id," + SQL_MA_VAI_TRO + " role_code,"
+        + "CASE WHEN tk.TenDangNhap='admin' THEN N'Quản trị hệ thống' WHEN nv.LoaiNhanVien=N'Quản lý' THEN N'Quản lý' "
+        + "WHEN nv.LoaiNhanVien=N'Bán hàng' THEN N'Bán hàng' ELSE N'Chăm sóc khách hàng' END role_name,"
+        + "N'Vai trò lấy từ NhanVien.LoaiNhanVien' description" + TU_BANG;
+
     public String goiYMaTaiKhoan() throws SQLException {
         return goiYMaTiepTheo("TaiKhoan", "MaTaiKhoan", "TK", 3);
     }
-    private static final String SQL_TAI_KHOAN = "SELECT tk.MaTaiKhoan account_id, " + "tk.TenDangNhap username, tk.MatKhau password_hash, " +
-        "CASE tk.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Bị khóa' END account_status, " + "tk.SoLanDangNhapSai failed_attempts, " +
-        "tk.ThoiGianMoKhoa locked_until, tk.LanDangNhapCuoi last_login_at, " + "nv.MaNhanVien employee_id, nv.HoTen full_name, nv.SoDienThoai phone, nv.Email email, " +
-        "nv.LoaiNhanVien department, nv.NgayVaoLam join_date, CASE nv.TrangThai WHEN " + "N'Hoạt động' THEN N'Hoạt động' ELSE N'Không hoạt động' END employee_status, " + "CASE WHEN tk.TenDangNhap='admin' THEN 1 " +
-        "     WHEN nv.LoaiNhanVien=N'Quản lý' THEN 2 " + "     WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 3 " + "     WHEN nv.LoaiNhanVien=N'CSKH' THEN 4 ELSE 0 END role_id, " +
-        "CASE WHEN tk.TenDangNhap='admin' THEN 'ADMIN' " + "     WHEN nv.LoaiNhanVien=N'Quản lý' THEN 'MANAGER' " + "     WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 'SALES' " +
-        "     WHEN nv.LoaiNhanVien=N'CSKH' THEN 'CUSTOMER_SERVICE' ELSE 'UNKNOWN' END role_code, " + "CASE WHEN tk.TenDangNhap='admin' THEN N'Quản trị hệ thống' " +
-        "     WHEN nv.LoaiNhanVien=N'Quản lý' THEN N'Quản lý' " + "     WHEN nv.LoaiNhanVien=N'Bán hàng' THEN N'Bán hàng' " +
-        "     ELSE N'Chăm sóc khách hàng' END role_name, " + "N'Vai trò lấy từ NhanVien.LoaiNhanVien' description " + "FROM dbo.TaiKhoan tk JOIN dbo.NhanVien nv ON nv.MaNhanVien=tk.MaNhanVien ";
+
+    // ===== Tìm 1 tài khoản =====
+
     public TaiKhoan timTheoTenDangNhap(String tenDangNhap) throws SQLException {
-        try (Connection ketNoi = KetNoiCSDL.layKetNoi();
-        PreparedStatement cauLenh = ketNoi.prepareStatement(SQL_TAI_KHOAN + "WHERE tk.TenDangNhap=?")) {
-            cauLenh.setString(1, tenDangNhap);
-            try (ResultSet tapKetQua = cauLenh.executeQuery()) {
-                return tapKetQua.next() ? anhXaTaiKhoan(tapKetQua) : null;
-            }
-        }
-    }
-    public TaiKhoan timTheoMa(String maTaiKhoan) throws SQLException {
-        try (Connection ketNoi = KetNoiCSDL.layKetNoi();
-        PreparedStatement cauLenh = ketNoi.prepareStatement(SQL_TAI_KHOAN + "WHERE tk.MaTaiKhoan=?")) {
-            cauLenh.setString(1, maTaiKhoan);
-            try (ResultSet tapKetQua = cauLenh.executeQuery()) {
-                return tapKetQua.next() ? anhXaTaiKhoan(tapKetQua) : null;
-            }
-        }
-    }
-    public int tangSoLanDangNhapSai(String maTaiKhoan) throws SQLException {
         try (Connection ketNoi = KetNoiCSDL.layKetNoi()) {
-            ketNoi.setAutoCommit(false);
-            try {
-                Object v = motGiaTri(ketNoi, "SELECT SoLanDangNhapSai FROM dbo.TaiKhoan WITH (UPDLOCK,ROWLOCK) WHERE MaTaiKhoan=?", maTaiKhoan);
-                if (v == null) throw new SQLException("Không tìm thấy tài khoản.");
-                int soLanSai = ((Number) v).intValue() + 1;
-                capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=? WHERE MaTaiKhoan=?", soLanSai, maTaiKhoan);
-                ketNoi.commit();
-                return soLanSai;
-            } catch (SQLException ex) {
-                ketNoi.rollback();
-                throw ex;
-            }
+            return timMot(ketNoi, "tk.TenDangNhap", tenDangNhap);
         }
     }
+
+    public TaiKhoan timTheoMa(String maTaiKhoan) throws SQLException {
+        try (Connection ketNoi = KetNoiCSDL.layKetNoi()) {
+            return timMot(ketNoi, "tk.MaTaiKhoan", maTaiKhoan);
+        }
+    }
+
+    // Dùng cho NhanVienDAO và PhanCongDAO
+    public TaiKhoan timTheoMaNhanVien(Connection ketNoi, String maNhanVien) throws SQLException {
+        return timMot(ketNoi, "nv.MaNhanVien", maNhanVien);
+    }
+
+    public TaiKhoan timThongTinTaiKhoanThucThe(String maTaiKhoan) throws SQLException {
+        return timTheoMa(maTaiKhoan);
+    }
+
+    public TaiKhoan timTrangThaiPhienThucThe(String maTaiKhoan) throws SQLException {
+        return timTheoMa(maTaiKhoan);
+    }
+
+    // ===== Đăng nhập =====
+
+    public int tangSoLanDangNhapSai(String maTaiKhoan) throws SQLException {
+        capNhat("UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=SoLanDangNhapSai+1 WHERE MaTaiKhoan=?", maTaiKhoan);
+        Object soLanSai = motGiaTri("SELECT SoLanDangNhapSai FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan);
+        if (soLanSai == null) throw new SQLException("Không tìm thấy tài khoản.");
+        return ((Number) soLanSai).intValue();
+    }
+
     public void datKhoaTamThoi(String maTaiKhoan, int soPhut) throws SQLException {
         capNhat("UPDATE dbo.TaiKhoan SET ThoiGianMoKhoa=DATEADD(MINUTE,?,SYSDATETIME()) WHERE MaTaiKhoan=?", soPhut, maTaiKhoan);
     }
+
     public void xoaKhoaTamHetHan(String maTaiKhoan) throws SQLException {
-        capNhat("UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=0,ThoiGianMoKhoa=NULL " + "WHERE MaTaiKhoan=? AND ThoiGianMoKhoa IS NOT NULL AND ThoiGianMoKhoa<=SYSDATETIME()", maTaiKhoan);
+        capNhat("UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=0,ThoiGianMoKhoa=NULL "
+            + "WHERE MaTaiKhoan=? AND ThoiGianMoKhoa IS NOT NULL AND ThoiGianMoKhoa<=SYSDATETIME()", maTaiKhoan);
     }
+
     public void ghiNhanDangNhapThanhCong(String maTaiKhoan) throws SQLException {
-        capNhat("UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=0,ThoiGianMoKhoa=NULL," + "LanDangNhapCuoi=SYSDATETIME() WHERE MaTaiKhoan=?", maTaiKhoan);
+        capNhat("UPDATE dbo.TaiKhoan SET SoLanDangNhapSai=0,ThoiGianMoKhoa=NULL,LanDangNhapCuoi=SYSDATETIME() WHERE MaTaiKhoan=?", maTaiKhoan);
     }
+
     public void capNhatMatKhau(String maTaiKhoan, String maBamMatKhau) throws SQLException {
         capNhat("UPDATE dbo.TaiKhoan SET MatKhau=? WHERE MaTaiKhoan=?", maBamMatKhau, maTaiKhoan);
     }
+
     public void capNhatMatKhau(Connection ketNoi, String maTaiKhoan, String maBamMatKhau) throws SQLException {
         capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET MatKhau=? WHERE MaTaiKhoan=?", maBamMatKhau, maTaiKhoan);
     }
+
+    // ===== Tìm kiếm danh sách =====
+
     public List<Map<String, Object>> timKiemTaiKhoan(String tuKhoa, String maVaiTro, String trangThai) throws SQLException {
-        StringBuilder sql = new StringBuilder( "SELECT tk.MaTaiKhoan account_code,tk.MaTaiKhoan account_id," +
-            "nv.MaNhanVien employee_id,nv.HoTen full_name,tk.TenDangNhap username," + "CASE WHEN tk.TenDangNhap='admin' THEN 'ADMIN' WHEN nv.LoaiNhanVien=N'Quản lý' THEN 'MANAGER' " +
-            "WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 'SALES' WHEN nv.LoaiNhanVien=N'CSKH' " + "THEN 'CUSTOMER_SERVICE' ELSE 'UNKNOWN' END role_code," +
-            "nv.LoaiNhanVien employee_type,nv.SoDienThoai phone," + "CASE tk.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Bị khóa' END status," +
-            "tk.LanDangNhapCuoi last_login_at " + "FROM dbo.TaiKhoan tk JOIN dbo.NhanVien nv ON nv.MaNhanVien=tk.MaNhanVien WHERE 1=1");
-        List<Object> p = new ArrayList<Object>();
+        String sql = "SELECT tk.MaTaiKhoan account_code,tk.MaTaiKhoan account_id,nv.MaNhanVien employee_id,nv.HoTen full_name,"
+            + "tk.TenDangNhap username," + SQL_MA_VAI_TRO + " role_code,nv.LoaiNhanVien employee_type,nv.SoDienThoai phone,"
+            + SQL_TRANG_THAI_TK + " status,tk.LanDangNhapCuoi last_login_at" + TU_BANG + "WHERE 1=1";
+        List<Object> thamSo = new ArrayList<Object>();
+
         if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-            sql.append(" AND (tk.MaTaiKhoan LIKE ? OR nv.HoTen LIKE ? OR tk.TenDangNhap LIKE ? OR " + "nv.SoDienThoai LIKE ? OR nv.MaNhanVien LIKE ?)");
-            p.add(tuKhoa);
-            p.add(tuKhoa);
-            p.add(tuKhoa);
-            p.add(tuKhoa);
-            p.add(tuKhoa);
-        }
-        if (maVaiTro != null) {
-            if ("ADMIN".equals(maVaiTro)) sql.append(" AND tk.TenDangNhap='admin'");
-            else {
-                String loai = loaiNhanVienTheoMaVaiTro(maVaiTro);
-                if (loai != null) {
-                    sql.append(" AND nv.LoaiNhanVien=? AND tk.TenDangNhap<>'admin'");
-                    p.add(loai);
-                }
+            sql += " AND (tk.MaTaiKhoan LIKE ? OR nv.HoTen LIKE ? OR tk.TenDangNhap LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNhanVien LIKE ?)";
+            for (int i = 0; i < 5; i++) {
+                thamSo.add(tuKhoa);
             }
         }
-        if (trangThai != null) {
-            if ("Hoạt động".equals(trangThai)) sql.append(" AND tk.TrangThai=N'Hoạt động'");
-            else if ("Bị khóa".equals(trangThai))
-                sql.append(" AND tk.TrangThai=N'Bị khóa'");
-            else sql.append(" AND 1=0");
+
+        String loaiNhanVien = loaiNhanVienTheoMaVaiTro(maVaiTro);
+        if ("ADMIN".equals(maVaiTro)) {
+            sql += " AND tk.TenDangNhap='admin'";
+        } else if (loaiNhanVien != null) {
+            sql += " AND nv.LoaiNhanVien=? AND tk.TenDangNhap<>'admin'";
+            thamSo.add(loaiNhanVien);
         }
-        sql.append(" ORDER BY tk.MaTaiKhoan");
-        return truyVan(sql.toString(), p.toArray());
+
+        if ("Hoạt động".equals(trangThai) || "Bị khóa".equals(trangThai)) {
+            sql += " AND tk.TrangThai=?";
+            thamSo.add(trangThai);
+        } else if (trangThai != null) {
+            sql += " AND 1=0";
+        }
+
+        return truyVan(sql + " ORDER BY tk.MaTaiKhoan", thamSo.toArray());
     }
+
     public List<TaiKhoan> timKiemTaiKhoanThucThe(String tuKhoa, String maVaiTro, String trangThai) throws SQLException {
         List<TaiKhoan> ketQua = new ArrayList<TaiKhoan>();
         for (Map<String, Object> dong : timKiemTaiKhoan(tuKhoa, maVaiTro, trangThai)) {
@@ -107,9 +130,12 @@ public class TaiKhoanDAO extends CoSoDAO {
         }
         return ketQua;
     }
+
     public List<Map<String, Object>> timNhanVienChuaCoTaiKhoan() throws SQLException {
-        return truyVan("SELECT nv.MaNhanVien employee_id,nv.HoTen full_name,nv.SoDienThoai phone " + "FROM dbo.NhanVien nv WHERE NOT EXISTS(SELECT 1 FROM dbo.TaiKhoan tk WHERE tk.MaNhanVien=nv.MaNhanVien) " + "ORDER BY nv.HoTen");
+        return truyVan("SELECT nv.MaNhanVien employee_id,nv.HoTen full_name,nv.SoDienThoai phone FROM dbo.NhanVien nv "
+            + "WHERE NOT EXISTS(SELECT 1 FROM dbo.TaiKhoan tk WHERE tk.MaNhanVien=nv.MaNhanVien) ORDER BY nv.HoTen");
     }
+
     public List<NhanVien> timNhanVienChuaCoTaiKhoanThucThe() throws SQLException {
         List<NhanVien> ketQua = new ArrayList<NhanVien>();
         for (Map<String, Object> dong : timNhanVienChuaCoTaiKhoan()) {
@@ -122,99 +148,124 @@ public class TaiKhoanDAO extends CoSoDAO {
         }
         return ketQua;
     }
-    public TaiKhoan timThongTinTaiKhoanThucThe(String maTaiKhoan) throws SQLException {
-        return timTheoMa(maTaiKhoan);
-    }
-    public TaiKhoan timTrangThaiPhienThucThe(String maTaiKhoan) throws SQLException {
-        return timTheoMa(maTaiKhoan);
-    }
+
+    // ===== Kiểm tra =====
+
     public String timTrangThai(String maTaiKhoan) throws SQLException {
-        Object v = motGiaTri( "SELECT CASE TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Bị khóa' END FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan);
-        return v == null ? null : String.valueOf(v);
+        Object trangThai = motGiaTri("SELECT " + SQL_TRANG_THAI_TK + " FROM dbo.TaiKhoan tk WHERE tk.MaTaiKhoan=?", maTaiKhoan);
+        if (trangThai == null) return null;
+        return String.valueOf(trangThai);
     }
+
     public Map<String, Object> timTomTat(String maTaiKhoan) throws SQLException {
-        return motDong("SELECT CASE WHEN tk.TenDangNhap='admin' THEN 1 WHEN nv.LoaiNhanVien=N'Quản lý' " + "THEN 2 WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 3 ELSE 4 END role_id," +
-            "CASE WHEN tk.TenDangNhap='admin' THEN 'ADMIN' WHEN nv.LoaiNhanVien=N'Quản lý' " + "THEN 'MANAGER' WHEN nv.LoaiNhanVien=N'Bán hàng' THEN 'SALES' ELSE " +
-            "'CUSTOMER_SERVICE' END role_code," + "CASE tk.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Bị khóa' END status," +
-            "CASE nv.TrangThai WHEN N'Hoạt động' THEN N'Hoạt động' ELSE N'Không hoạt động' END employee_status,nv.MaNhanVien employee_id " + "FROM dbo.TaiKhoan tk JOIN dbo.NhanVien nv ON nv.MaNhanVien=tk.MaNhanVien WHERE tk.MaTaiKhoan=?", maTaiKhoan);
+        return motDong("SELECT " + SQL_ID_VAI_TRO + " role_id," + SQL_MA_VAI_TRO + " role_code," + SQL_TRANG_THAI_TK + " status,"
+            + SQL_TRANG_THAI_NV + " employee_status,nv.MaNhanVien employee_id" + TU_BANG + "WHERE tk.MaTaiKhoan=?", maTaiKhoan);
     }
+
     public boolean tonTaiTheoNhanVienHoacTenDangNhap(String maNhanVien, String tenDangNhap) throws SQLException {
-        Object v = motGiaTri("SELECT COUNT(*) FROM dbo.TaiKhoan WHERE MaNhanVien=? OR TenDangNhap=?", maNhanVien, tenDangNhap);
-        return v != null && ((Number) v).intValue() > 0;
+        return coKetQua(motGiaTri("SELECT COUNT(*) FROM dbo.TaiKhoan WHERE MaNhanVien=? OR TenDangNhap=?", maNhanVien, tenDangNhap));
     }
+
     public boolean tonTaiTenDangNhapKhacMa(String tenDangNhap, String maTaiKhoan) throws SQLException {
-        Object v = motGiaTri("SELECT COUNT(*) FROM dbo.TaiKhoan WHERE TenDangNhap=? AND MaTaiKhoan<>?", tenDangNhap, maTaiKhoan);
-        return v != null && ((Number) v).intValue() > 0;
+        return coKetQua(motGiaTri("SELECT COUNT(*) FROM dbo.TaiKhoan WHERE TenDangNhap=? AND MaTaiKhoan<>?", tenDangNhap, maTaiKhoan));
     }
-    public boolean coLichSu(String maTaiKhoan) throws SQLException {
-        Map<String, Object> t = timTomTat(maTaiKhoan);
-        if (t == null) return false;
-        String nv = String.valueOf(t.get("employee_id"));
-        Object v = motGiaTri("SELECT (SELECT COUNT(*) FROM dbo.HoaDon WHERE MaNhanVienBanHang=?)+" + "(SELECT COUNT(*) FROM dbo.PhieuGiaoHang WHERE MaNhanVienGiaoHang=?)+" +
-            "(SELECT COUNT(*) FROM dbo.PhieuBaoHanh WHERE MaNhanVienCSKH=?)+" + "(SELECT COUNT(*) FROM dbo.KhieuNai WHERE MaNhanVienCSKH=?)+" +
-            "(SELECT COUNT(*) FROM dbo.PhieuDoiTraHoanTien WHERE MaNhanVienBanHang=? OR MaNhanVienQuanLy=?)", nv, nv, nv, nv, nv, nv);
-        return v != null && ((Number) v).intValue() > 0;
-    }
-    public void them(Connection ketNoi, String maTaiKhoan, String maNhanVien, String tenDangNhap, String maBamMatKhau) throws SQLException {
-        capNhat(ketNoi, "INSERT INTO dbo.TaiKhoan(MaTaiKhoan,TenDangNhap,MatKhau,TrangThai," + "SoLanDangNhapSai,ThoiGianMoKhoa,LanDangNhapCuoi,MaNhanVien) " +
-            "VALUES(?,?,?,N'Hoạt động',0,NULL,NULL,?)", maTaiKhoan, tenDangNhap, maBamMatKhau, maNhanVien);
-    }
+
     public boolean tonTaiMaTaiKhoan(Connection ketNoi, String maTaiKhoan) throws SQLException {
-        Object v = motGiaTri(ketNoi, "SELECT COUNT(*) FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan);
-        return v != null && ((Number) v).intValue() > 0;
+        return coKetQua(motGiaTri(ketNoi, "SELECT COUNT(*) FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan));
     }
-    public void capNhatTenDangNhap(Connection ketNoi, String maTaiKhoan, String tenDangNhap) throws SQLException {
-        capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TenDangNhap=? WHERE MaTaiKhoan=?", tenDangNhap, maTaiKhoan);
+
+    public boolean coLichSu(String maTaiKhoan) throws SQLException {
+        Map<String, Object> tomTat = timTomTat(maTaiKhoan);
+        if (tomTat == null) return false;
+        String maNhanVien = String.valueOf(tomTat.get("employee_id"));
+        try (Connection ketNoi = KetNoiCSDL.layKetNoi()) {
+            return new NhanVienDAO().coDuLieuNghiepVu(ketNoi, maNhanVien);
+        }
     }
-    public void capNhatTrangThai(Connection ketNoi, String maTaiKhoan, String trangThaiMoi) throws SQLException {
-        String dbStatus = "Hoạt động".equals(trangThaiMoi) ? "Hoạt động" : "Bị khóa";
-        capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TrangThai=?,ThoiGianMoKhoa=CASE WHEN ?=N'Hoạt động' THEN NULL ELSE ThoiGianMoKhoa END," +
-            "SoLanDangNhapSai=CASE WHEN ?=N'Hoạt động' THEN 0 ELSE SoLanDangNhapSai END WHERE MaTaiKhoan=?", dbStatus, dbStatus, dbStatus, maTaiKhoan);
-    }
-    public void voHieuHoa(Connection ketNoi, String maTaiKhoan) throws SQLException {
-        capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TrangThai=N'Bị khóa',ThoiGianMoKhoa=NULL WHERE MaTaiKhoan=?", maTaiKhoan);
-    }
-    public void xoaTaiKhoan(Connection ketNoi, String maTaiKhoan) throws SQLException {
-        capNhat(ketNoi, "DELETE FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan);
-    }
+
     public int demQuanLyDangHoatDong(Connection ketNoi) throws SQLException {
-        Object v = motGiaTri(ketNoi, "SELECT COUNT(*) FROM dbo.TaiKhoan tk JOIN dbo.NhanVien nv ON nv.MaNhanVien=tk.MaNhanVien " +
-            "WHERE nv.LoaiNhanVien=N'Quản lý' AND nv.TrangThai=N'Hoạt động' AND " + "tk.TrangThai=N'Hoạt động' AND tk.TenDangNhap<>'admin'");
-        return v == null ? 0 : ((Number) v).intValue();
+        Object soLuong = motGiaTri(ketNoi, "SELECT COUNT(*)" + TU_BANG
+            + "WHERE nv.LoaiNhanVien=N'Quản lý' AND nv.TrangThai=N'Hoạt động' AND tk.TrangThai=N'Hoạt động' AND tk.TenDangNhap<>'admin'");
+        if (soLuong == null) return 0;
+        return ((Number) soLuong).intValue();
     }
+
     public int demQuanLyDangHoatDong() throws SQLException {
         try (Connection ketNoi = KetNoiCSDL.layKetNoi()) {
             return demQuanLyDangHoatDong(ketNoi);
         }
     }
-    private TaiKhoan anhXaTaiKhoan(ResultSet rs) throws SQLException {
-        NhanVien nv = new NhanVien();
-        nv.setMaNhanVien(rs.getString("employee_id"));
-        nv.setHoTen(rs.getString("full_name"));
-        nv.setSoDienThoai(rs.getString("phone"));
-        nv.setEmail(rs.getString("email"));
-        nv.setPhongBan(rs.getString("department"));
-        if (rs.getDate("join_date") != null) nv.setNgayVaoLam(rs.getDate("join_date").toLocalDate());
-        nv.setTrangThai(rs.getString("employee_status"));
-        VaiTro vt = new VaiTro(rs.getInt("role_id"), rs.getString("role_code"), rs.getString("role_name"), rs.getString("description"));
-        TaiKhoan tk = new TaiKhoan();
-        tk.setMaTaiKhoan(rs.getString("account_id"));
-        tk.setTenDangNhap(rs.getString("username"));
-        tk.setMaBamMatKhau(rs.getString("password_hash"));
-        tk.setTrangThai(rs.getString("account_status"));
-        tk.setSoLanDangNhapSai(rs.getInt("failed_attempts"));
-        Timestamp t = rs.getTimestamp("locked_until");
-        if (t != null) tk.setKhoaDen(t.toLocalDateTime());
-        Timestamp lanCuoi = rs.getTimestamp("last_login_at");
-        if (lanCuoi != null) tk.setLanDangNhapCuoi(lanCuoi.toLocalDateTime());
-        tk.setNhanVien(nv);
-        tk.setVaiTro(vt);
-        return tk;
+
+    // ===== Thêm / sửa / xóa =====
+
+    public void them(Connection ketNoi, String maTaiKhoan, String maNhanVien, String tenDangNhap, String maBamMatKhau) throws SQLException {
+        capNhat(ketNoi, "INSERT INTO dbo.TaiKhoan(MaTaiKhoan,TenDangNhap,MatKhau,TrangThai,SoLanDangNhapSai,ThoiGianMoKhoa,LanDangNhapCuoi,MaNhanVien) "
+            + "VALUES(?,?,?,N'Hoạt động',0,NULL,NULL,?)", maTaiKhoan, tenDangNhap, maBamMatKhau, maNhanVien);
     }
-    private static String loaiNhanVienTheoMaVaiTro(String code) {
-        if ("MANAGER".equals(code)) return "Quản lý";
-        if ("SALES".equals(code)) return "Bán hàng";
-        if ("CUSTOMER_SERVICE".equals(code)) return "CSKH";
+
+    public void capNhatTenDangNhap(Connection ketNoi, String maTaiKhoan, String tenDangNhap) throws SQLException {
+        capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TenDangNhap=? WHERE MaTaiKhoan=?", tenDangNhap, maTaiKhoan);
+    }
+
+    public void capNhatTrangThai(Connection ketNoi, String maTaiKhoan, String trangThaiMoi) throws SQLException {
+        if ("Hoạt động".equals(trangThaiMoi)) {
+            capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TrangThai=N'Hoạt động',ThoiGianMoKhoa=NULL,SoLanDangNhapSai=0 WHERE MaTaiKhoan=?", maTaiKhoan);
+        } else {
+            capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TrangThai=N'Bị khóa' WHERE MaTaiKhoan=?", maTaiKhoan);
+        }
+    }
+
+    public void voHieuHoa(Connection ketNoi, String maTaiKhoan) throws SQLException {
+        capNhat(ketNoi, "UPDATE dbo.TaiKhoan SET TrangThai=N'Bị khóa',ThoiGianMoKhoa=NULL WHERE MaTaiKhoan=?", maTaiKhoan);
+    }
+
+    public void xoaTaiKhoan(Connection ketNoi, String maTaiKhoan) throws SQLException {
+        capNhat(ketNoi, "DELETE FROM dbo.TaiKhoan WHERE MaTaiKhoan=?", maTaiKhoan);
+    }
+
+    // ===== Hàm phụ =====
+
+    private TaiKhoan timMot(Connection ketNoi, String cot, String giaTri) throws SQLException {
+        try (PreparedStatement cauLenh = ketNoi.prepareStatement(SQL_TAI_KHOAN + "WHERE " + cot + "=?")) {
+            cauLenh.setString(1, giaTri);
+            try (ResultSet tapKetQua = cauLenh.executeQuery()) {
+                if (!tapKetQua.next()) return null;
+                return anhXaTaiKhoan(tapKetQua);
+            }
+        }
+    }
+
+    private TaiKhoan anhXaTaiKhoan(ResultSet rs) throws SQLException {
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(rs.getString("employee_id"));
+        nhanVien.setHoTen(rs.getString("full_name"));
+        nhanVien.setSoDienThoai(rs.getString("phone"));
+        nhanVien.setEmail(rs.getString("email"));
+        nhanVien.setPhongBan(rs.getString("department"));
+        nhanVien.setTrangThai(rs.getString("employee_status"));
+        if (rs.getDate("join_date") != null) nhanVien.setNgayVaoLam(rs.getDate("join_date").toLocalDate());
+
+        TaiKhoan taiKhoan = new TaiKhoan();
+        taiKhoan.setMaTaiKhoan(rs.getString("account_id"));
+        taiKhoan.setTenDangNhap(rs.getString("username"));
+        taiKhoan.setMaBamMatKhau(rs.getString("password_hash"));
+        taiKhoan.setTrangThai(rs.getString("account_status"));
+        taiKhoan.setSoLanDangNhapSai(rs.getInt("failed_attempts"));
+        if (rs.getTimestamp("locked_until") != null) taiKhoan.setKhoaDen(rs.getTimestamp("locked_until").toLocalDateTime());
+        if (rs.getTimestamp("last_login_at") != null) taiKhoan.setLanDangNhapCuoi(rs.getTimestamp("last_login_at").toLocalDateTime());
+        taiKhoan.setNhanVien(nhanVien);
+        taiKhoan.setVaiTro(new VaiTro(rs.getInt("role_id"), rs.getString("role_code"), rs.getString("role_name"), rs.getString("description")));
+        return taiKhoan;
+    }
+
+    private static boolean coKetQua(Object soLuong) {
+        return soLuong != null && ((Number) soLuong).intValue() > 0;
+    }
+
+    private static String loaiNhanVienTheoMaVaiTro(String maVaiTro) {
+        if ("MANAGER".equals(maVaiTro)) return "Quản lý";
+        if ("SALES".equals(maVaiTro)) return "Bán hàng";
+        if ("CUSTOMER_SERVICE".equals(maVaiTro)) return "CSKH";
         return null;
     }
 }
