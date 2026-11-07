@@ -1,0 +1,23 @@
+ĐIỆN MÁY BLUE - HƯỚNG DẪN CHẠY SQL
+
+Chạy lần lượt 6 file:
+01_Tao_co_so_du_lieu.sql
+02_Tao_bang.sql
+03_Tao_rang_buoc_khoa_ngoai_va_chi_muc.sql
+04_Them_du_lieu_nen.sql
+05_Them_du_lieu_mau_nghiep_vu.sql
+06_Kiem_tra_cau_truc_va_du_lieu.sql
+
+Lưu ý:
+- File 01 xóa và tạo lại database DienMayBlue.
+- CSDL có đúng 17 bảng vật lý; ChiTietPhieuDoiTra lưu nhiều sản phẩm cho một phiếu đổi trả.
+- PhanCong và ChiTietPhieuGiaoHang là đối tượng nghiệp vụ dẫn xuất trong Java, không tạo bảng vật lý riêng.
+- Không khôi phục hệ thống Nhập kho/Phiếu nhập riêng và không khôi phục phân quyền động.
+- Danh mục sản phẩm được giữ bằng mã danh mục trong SanPham theo logic đã có trong code, không tạo bảng DanhMuc mới.
+
+Cập nhật:
+- Toàn bộ giá trị trạng thái/phân loại trong CSDL thống nhất bằng tiếng Việt (NVARCHAR), ví dụ:
+  Hoạt động / Không hoạt động, Ngừng kinh doanh, Hết hàng, Sắp diễn ra, Đã kết thúc, Đã hủy,
+  Đã phân công, Hoàn tất, Tiền mặt / Chuyển khoản, Bình thường / Khẩn cấp...
+- Hóa đơn có 2 trạng thái: Đã thanh toán, Đã hủy.
+- Phải chạy lại từ file 01 vì kiểu cột và ràng buộc CHECK đã thay đổi.
