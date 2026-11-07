@@ -44,6 +44,7 @@ public class StatisticsPanel extends BaseScreenPanel {
         
         actions.add(excel);
         actions.add(finalize);
+        
         JPanel filters=UIFactory.toolbar(new JLabel("Từ ngày"),from,new JLabel("Đến ngày"),to,
                 new JLabel("Xếp KH"),customerRank,new JLabel("Nhóm doanh thu"),revenuePeriod,apply);
         tabs.addTab("Khách hàng mua nhiều",UIFactory.scroll(topCustomerTable));
@@ -254,15 +255,6 @@ public class StatisticsPanel extends BaseScreenPanel {
             g2.setColor(UIConstants.BORDER);g2.drawLine(left,top+plotH,w-right,top+plotH);
             g2.dispose();
         }
-    }
-    
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Thống kê kinh doanh");
-        frame.setContentPane(new StatisticsPanel());
-        frame.setSize(1200, 750);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 }
 
