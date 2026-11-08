@@ -23,42 +23,42 @@ public class HopThoaiDoiMatKhau extends JDialog {
         this(chuSoHuu, dichVuXacThuc, onSuccess);
     }
     private void taoGiaoDien() {
-        JPanel khungGoc = new JPanel(new BorderLayout(16, 16));
-        khungGoc.setBackground(Color.WHITE);
-        khungGoc.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-        khungGoc.add(taoPhanTieuDe(), BorderLayout.NORTH);
-        khungGoc.add(taoPhanNhapLieu(), BorderLayout.CENTER);
-        khungGoc.add(taoPhanNut(), BorderLayout.SOUTH);
-        setContentPane(khungGoc);
+        JPanel pnlGoc = new JPanel(new BorderLayout(16, 16));
+        pnlGoc.setBackground(Color.WHITE);
+        pnlGoc.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
+        pnlGoc.add(taoPhanTieuDe(), BorderLayout.NORTH);
+        pnlGoc.add(taoPhanNhapLieu(), BorderLayout.CENTER);
+        pnlGoc.add(taoPhanNut(), BorderLayout.SOUTH);
+        setContentPane(pnlGoc);
     }
     private JPanel taoPhanTieuDe() {
-        JLabel tieuDe = new JLabel("Đổi mật khẩu");
-        tieuDe.setFont(HangSoGiaoDien.HEADING);
-        tieuDe.setForeground(HangSoGiaoDien.TEXT);
-        JLabel goiY = new JLabel("<html>Mật khẩu mới tối thiểu 8 ký tự, " + "có chữ và số, và khác mật khẩu hiện tại.</html>");
-        goiY.setForeground(HangSoGiaoDien.MUTED);
-        goiY.setFont(HangSoGiaoDien.SMALL);
-        JPanel khungTren = new JPanel();
-        khungTren.setOpaque(false);
-        khungTren.setLayout(new BoxLayout(khungTren, BoxLayout.Y_AXIS));
-        khungTren.add(tieuDe);
-        khungTren.add(Box.createVerticalStrut(6));
-        khungTren.add(goiY);
-        return khungTren;
+        JLabel lblTieuDe = new JLabel("Đổi mật khẩu");
+        lblTieuDe.setFont(HangSoGiaoDien.HEADING);
+        lblTieuDe.setForeground(HangSoGiaoDien.TEXT);
+        JLabel lblGoiY = new JLabel("<html>Mật khẩu mới tối thiểu 8 ký tự, " + "có chữ và số, và khác mật khẩu hiện tại.</html>");
+        lblGoiY.setForeground(HangSoGiaoDien.MUTED);
+        lblGoiY.setFont(HangSoGiaoDien.SMALL);
+        JPanel pnlTren = new JPanel();
+        pnlTren.setOpaque(false);
+        pnlTren.setLayout(new BoxLayout(pnlTren, BoxLayout.Y_AXIS));
+        pnlTren.add(lblTieuDe);
+        pnlTren.add(Box.createVerticalStrut(6));
+        pnlTren.add(lblGoiY);
+        return pnlTren;
     }
     private JPanel taoPhanNhapLieu() {
-        JPanel bieuMau = new JPanel(new GridLayout(6, 1, 8, 6));
-        bieuMau.setOpaque(false);
-        bieuMau.add(new JLabel("Mật khẩu hiện tại"));
-        bieuMau.add(txtMatKhauCu);
-        bieuMau.add(new JLabel("Mật khẩu mới"));
-        bieuMau.add(txtMatKhauMoi);
-        bieuMau.add(new JLabel("Xác nhận mật khẩu mới"));
-        bieuMau.add(txtXacNhan);
+        JPanel pnlBieuMau = new JPanel(new GridLayout(6, 1, 8, 6));
+        pnlBieuMau.setOpaque(false);
+        pnlBieuMau.add(new JLabel("Mật khẩu hiện tại"));
+        pnlBieuMau.add(txtMatKhauCu);
+        pnlBieuMau.add(new JLabel("Mật khẩu mới"));
+        pnlBieuMau.add(txtMatKhauMoi);
+        pnlBieuMau.add(new JLabel("Xác nhận mật khẩu mới"));
+        pnlBieuMau.add(txtXacNhan);
         kieuOMatKhau(txtMatKhauCu);
         kieuOMatKhau(txtMatKhauMoi);
         kieuOMatKhau(txtXacNhan);
-        return bieuMau;
+        return pnlBieuMau;
     }
     private JPanel taoPhanNut() {
         JButton btnLuu = new JButton("Cập nhật mật khẩu");
@@ -67,21 +67,21 @@ public class HopThoaiDoiMatKhau extends JDialog {
         btnLuu.setFocusPainted(false);
         JButton btnHuy = new JButton("Hủy");
         btnHuy.setFocusPainted(false);
-        JPanel nut = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        nut.setOpaque(false);
-        nut.add(btnHuy);
-        nut.add(btnLuu);
+        JPanel pnlNut = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pnlNut.setOpaque(false);
+        pnlNut.add(btnHuy);
+        pnlNut.add(btnLuu);
         btnLuu.addActionListener(e -> luuMatKhau());
         btnHuy.addActionListener(e -> huy());
         getRootPane().setDefaultButton(btnLuu);
-        return nut;
+        return pnlNut;
     }
     private void huy() {
         dispose();
     }
-    private void kieuOMatKhau(JPasswordField oNhap) {
-        oNhap.setPreferredSize(new Dimension(420, 38));
-        oNhap.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+    private void kieuOMatKhau(JPasswordField txtMatKhau) {
+        txtMatKhau.setPreferredSize(new Dimension(420, 38));
+        txtMatKhau.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(6, 10, 6, 10)));
     }
     private void luuMatKhau() {
         String matKhauCu = new String(txtMatKhauCu.getPassword());

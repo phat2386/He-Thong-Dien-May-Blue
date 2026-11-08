@@ -1,4 +1,4 @@
-	package ui.nhanvien;
+package ui.nhanvien;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,18 +27,18 @@ public class ManHinhQuanLyNhanVien extends ManHinhCoSo {
         JButton btnSua = TaoGiaoDien.nutPhu("Cập nhật hồ sơ");
         JButton btnXoa = TaoGiaoDien.nutPhu("Xóa nhân viên");
         thaoTac.add(btnThem); thaoTac.add(btnSua); thaoTac.add(btnXoa);
-        JPanel khung = new JPanel(new BorderLayout(0, 12));
-        khung.setOpaque(false);
-        khung.add(taoKhungTongHop(), BorderLayout.NORTH);
-        JPanel trungTam = new JPanel(new BorderLayout(0, 10));
-        trungTam.setOpaque(false);
-        trungTam.add(TaoGiaoDien.thanhCongCu(new JLabel("Tìm kiếm"), txtTimKiem, new JLabel("Loại nhân viên"), cmbLoaiNhanVien), BorderLayout.NORTH);
-        BangPhanTrang cuon = TaoGiaoDien.bangPhanTrang(tblDanhSach);
+        JPanel pnlKhung = new JPanel(new BorderLayout(0, 12));
+        pnlKhung.setOpaque(false);
+        pnlKhung.add(taoKhungTongHop(), BorderLayout.NORTH);
+        JPanel pnlTrungTam = new JPanel(new BorderLayout(0, 10));
+        pnlTrungTam.setOpaque(false);
+        pnlTrungTam.add(TaoGiaoDien.thanhCongCu(new JLabel("Tìm kiếm"), txtTimKiem, new JLabel("Loại nhân viên"), cmbLoaiNhanVien), BorderLayout.NORTH);
+        BangPhanTrang pnlCuon = TaoGiaoDien.bangPhanTrang(tblDanhSach);
         tblDanhSach.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         datDoRongCot();
-        trungTam.add(cuon, BorderLayout.CENTER);
-        khung.add(trungTam, BorderLayout.CENTER);
-        noiDung.add(khung, BorderLayout.CENTER);
+        pnlTrungTam.add(pnlCuon, BorderLayout.CENTER);
+        pnlKhung.add(pnlTrungTam, BorderLayout.CENTER);
+        noiDung.add(pnlKhung, BorderLayout.CENTER);
         txtTimKiem.addActionListener(e -> lamMoiDuLieu());
         GoiYTimKiem.ganTuBang(txtTimKiem, tblDanhSach, 0, m -> lamMoiDuLieu(), 0, 1, 2, 3);
         cmbLoaiNhanVien.addActionListener(e -> lamMoiDuLieu());
@@ -47,30 +47,30 @@ public class ManHinhQuanLyNhanVien extends ManHinhCoSo {
         btnXoa.addActionListener(e -> xoaNhanVien());
     }
     private JPanel taoKhungTongHop() {
-        JPanel p = new JPanel(new GridLayout(1, 1, 10, 0));
-        p.setOpaque(false);
-        p.add(taoTheTongHop("Nhân viên đang quản lý", lblTongNhanVien));
-        return p;
+        JPanel pnlTongHop = new JPanel(new GridLayout(1, 1, 10, 0));
+        pnlTongHop.setOpaque(false);
+        pnlTongHop.add(taoTheTongHop("Nhân viên đang quản lý", lblTongNhanVien));
+        return pnlTongHop;
     }
-    private JPanel taoTheTongHop(String tieuDe, JLabel giaTri) {
-        KhungBoGoc p = new KhungBoGoc(12, Color.WHITE);
-        p.setLayout(new BorderLayout(0, 6));
-        p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(12, 14, 12, 14)));
-        JLabel t = new JLabel(tieuDe); t.setFont(HangSoGiaoDien.MEDIUM); t.setForeground(HangSoGiaoDien.MUTED);
-        p.add(t, BorderLayout.NORTH); p.add(giaTri, BorderLayout.CENTER);
-        return p;
+    private JPanel taoTheTongHop(String tieuDe, JLabel lblGiaTri) {
+        KhungBoGoc pnlThe = new KhungBoGoc(12, Color.WHITE);
+        pnlThe.setLayout(new BorderLayout(0, 6));
+        pnlThe.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(12, 14, 12, 14)));
+        JLabel lblTieuDe = new JLabel(tieuDe); lblTieuDe.setFont(HangSoGiaoDien.MEDIUM); lblTieuDe.setForeground(HangSoGiaoDien.MUTED);
+        pnlThe.add(lblTieuDe, BorderLayout.NORTH); pnlThe.add(lblGiaTri, BorderLayout.CENTER);
+        return pnlThe;
     }
     private static JLabel taoGiaTriTongHop(String vanBan) {
-        JLabel l = new JLabel(vanBan); l.setFont(HangSoGiaoDien.phongChu(Font.BOLD, 24)); l.setForeground(HangSoGiaoDien.TEXT); return l;
+        JLabel lblGiaTri = new JLabel(vanBan); lblGiaTri.setFont(HangSoGiaoDien.phongChu(Font.BOLD, 24)); lblGiaTri.setForeground(HangSoGiaoDien.TEXT); return lblGiaTri;
     }
     private void datDoRongCot() {
         int[] rong = {75, 155, 110, 200, 125, 105, 90, 120, 105};
         for (int i = 0; i < rong.length && i < tblDanhSach.getColumnCount(); i++) tblDanhSach.getColumnModel().getColumn(i).setPreferredWidth(rong[i]);
     }
     private JComboBox<String> taoComboLoai(String giaTri) {
-        JComboBox<String> cbo = TaoGiaoDien.oChon("Quản lý", "Bán hàng", "CSKH");
-        if (giaTri != null) cbo.setSelectedItem(giaTri);
-        return cbo;
+        JComboBox<String> cmbLoai = TaoGiaoDien.oChon("Quản lý", "Bán hàng", "CSKH");
+        if (giaTri != null) cmbLoai.setSelectedItem(giaTri);
+        return cmbLoai;
     }
     @Override
     public void lamMoiDuLieu() {
@@ -93,41 +93,41 @@ public class ManHinhQuanLyNhanVien extends ManHinhCoSo {
         return vr < 0 ? null : String.valueOf(moHinh.getValueAt(tblDanhSach.convertRowIndexToModel(vr), 0));
     }
     private void taoNhanVien() {
-        JTextField ma = TaoGiaoDien.oNhap(180);
-        try { TaoGiaoDien.datGoiYMa(ma, dichVu.goiYMaNhanVien()); } catch (Exception ex) { hienLoi(ex); return; }
-        hienBieuMauNhanVien(null, ma);
+        JTextField txtMa = TaoGiaoDien.oNhap(180);
+        try { TaoGiaoDien.datGoiYMa(txtMa, dichVu.goiYMaNhanVien()); } catch (Exception ex) { hienLoi(ex); return; }
+        hienBieuMauNhanVien(null, txtMa);
     }
     private void suaNhanVien() {
         String ma = maNhanVienDangChon();
         if (ma == null) { thongBao("Hãy chọn nhân viên cần cập nhật."); return; }
-        JTextField maChiDoc = TaoGiaoDien.oNhap(180); TaoGiaoDien.datChiDoc(maChiDoc, ma);
-        hienBieuMauNhanVien(ma, maChiDoc);
+        JTextField txtMaChiDoc = TaoGiaoDien.oNhap(180); TaoGiaoDien.datChiDoc(txtMaChiDoc, ma);
+        hienBieuMauNhanVien(ma, txtMaChiDoc);
     }
-    private void hienBieuMauNhanVien(String maCu, JTextField ma) {
+    private void hienBieuMauNhanVien(String maCu, JTextField txtMa) {
         try {
             NhanVien nv = maCu == null ? null : dichVu.timNhanVien(maCu);
-            JTextField ten = TaoGiaoDien.oNhap(260), sdt = TaoGiaoDien.oNhap(180), email = TaoGiaoDien.oNhap(260), ngay = TaoGiaoDien.oNhap(160), heSo = TaoGiaoDien.oNhap(120), luong = TaoGiaoDien.oNhap(180);
-            JComboBox<String> loai = taoComboLoai(nv == null ? null : nv.getPhongBan());
-            JComboBox<String> trinhDo = TaoGiaoDien.oChon("Trung cấp", "Cao đẳng", "Đại học", "Sau đại học");
-            if (nv == null) ngay.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            JTextField txtTen = TaoGiaoDien.oNhap(260), txtSoDienThoai = TaoGiaoDien.oNhap(180), txtEmail = TaoGiaoDien.oNhap(260), txtNgay = TaoGiaoDien.oNhap(160), txtHeSo = TaoGiaoDien.oNhap(120), txtLuong = TaoGiaoDien.oNhap(180);
+            JComboBox<String> cmbLoai = taoComboLoai(nv == null ? null : nv.getPhongBan());
+            JComboBox<String> cmbTrinhDo = TaoGiaoDien.oChon("Trung cấp", "Cao đẳng", "Đại học", "Sau đại học");
+            if (nv == null) txtNgay.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             else {
-                ten.setText(nv.getHoTen()); sdt.setText(nv.getSoDienThoai()); email.setText(DinhDangHienThi.anToan(nv.getEmail()));
-                ngay.setText(nv.getNgayVaoLam().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))); trinhDo.setSelectedItem(nv.getTrinhDo());
-                heSo.setText(String.valueOf(nv.getHeSoLuong())); luong.setText(nv.getLuongCoBan().toPlainString());
+                txtTen.setText(nv.getHoTen()); txtSoDienThoai.setText(nv.getSoDienThoai()); txtEmail.setText(DinhDangHienThi.anToan(nv.getEmail()));
+                txtNgay.setText(nv.getNgayVaoLam().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))); cmbTrinhDo.setSelectedItem(nv.getTrinhDo());
+                txtHeSo.setText(String.valueOf(nv.getHeSoLuong())); txtLuong.setText(nv.getLuongCoBan().toPlainString());
             }
-            JPanel p = TaoGiaoDien.bieuMauHaiCot(TaoGiaoDien.truongBieuMau("Mã nhân viên", ma), TaoGiaoDien.truongBieuMau("Họ tên", ten), TaoGiaoDien.truongBieuMau("Số điện thoại", sdt),
-                TaoGiaoDien.truongBieuMau("Thư điện tử", email), TaoGiaoDien.truongBieuMau("Loại nhân viên", loai), TaoGiaoDien.truongBieuMau("Ngày vào làm (dd/MM/yyyy)", ngay),
-                TaoGiaoDien.truongBieuMau("Trình độ", trinhDo), TaoGiaoDien.truongBieuMau("Hệ số lương", heSo), TaoGiaoDien.truongBieuMau("Lương cơ bản (VNĐ)", luong));
+            JPanel pnlBieuMau = TaoGiaoDien.bieuMauHaiCot(TaoGiaoDien.truongBieuMau("Mã nhân viên", txtMa), TaoGiaoDien.truongBieuMau("Họ tên", txtTen), TaoGiaoDien.truongBieuMau("Số điện thoại", txtSoDienThoai),
+                TaoGiaoDien.truongBieuMau("Thư điện tử", txtEmail), TaoGiaoDien.truongBieuMau("Loại nhân viên", cmbLoai), TaoGiaoDien.truongBieuMau("Ngày vào làm (dd/MM/yyyy)", txtNgay),
+                TaoGiaoDien.truongBieuMau("Trình độ", cmbTrinhDo), TaoGiaoDien.truongBieuMau("Hệ số lương", txtHeSo), TaoGiaoDien.truongBieuMau("Lương cơ bản (VNĐ)", txtLuong));
             while (true) {
-                if (!TienIchHopThoai.xacNhanBieuMau(this, p, nv == null ? "Thêm nhân viên" : "Cập nhật nhân viên", nv == null ? "Thêm nhân viên" : "Lưu thay đổi")) return;
+                if (!TienIchHopThoai.xacNhanBieuMau(this, pnlBieuMau, nv == null ? "Thêm nhân viên" : "Cập nhật nhân viên", nv == null ? "Thêm nhân viên" : "Lưu thay đổi")) return;
                 try {
-                    String maNhap = ma.getText().trim().toUpperCase(Locale.ROOT);
-                    String tenNhap = ten.getText().trim();
-                    String sdtNhap = sdt.getText().trim();
-                    String emailNhap = email.getText().trim();
-                    String ngayNhap = ngay.getText().trim();
-                    String heSoNhap = heSo.getText().trim();
-                    String luongNhap = luong.getText().trim();
+                    String maNhap = txtMa.getText().trim().toUpperCase(Locale.ROOT);
+                    String tenNhap = txtTen.getText().trim();
+                    String sdtNhap = txtSoDienThoai.getText().trim();
+                    String emailNhap = txtEmail.getText().trim();
+                    String ngayNhap = txtNgay.getText().trim();
+                    String heSoNhap = txtHeSo.getText().trim();
+                    String luongNhap = txtLuong.getText().trim();
                     if (maNhap.isEmpty() || tenNhap.isEmpty() || sdtNhap.isEmpty() || emailNhap.isEmpty() || ngayNhap.isEmpty() || heSoNhap.isEmpty() || luongNhap.isEmpty()) {
                         throw new IllegalArgumentException("Vui lòng nhập đầy đủ thông tin.");
                     }
@@ -140,7 +140,7 @@ public class ManHinhQuanLyNhanVien extends ManHinhCoSo {
                         throw new IllegalArgumentException("Ngày vào làm phải theo dạng dd/MM/yyyy.");
                     }
                     NhanVien moi = new NhanVien(maNhap, tenNhap, sdtNhap, emailNhap, ngayVaoLam,
-                        String.valueOf(trinhDo.getSelectedItem()), Double.valueOf(heSoNhap), new BigDecimal(luongNhap), String.valueOf(loai.getSelectedItem()), "Hoạt động");
+                        String.valueOf(cmbTrinhDo.getSelectedItem()), Double.valueOf(heSoNhap), new BigDecimal(luongNhap), String.valueOf(cmbLoai.getSelectedItem()), "Hoạt động");
                     if (nv == null) dichVu.taoNhanVien(moi); else dichVu.capNhatNhanVien(moi);
                     lamMoiDuLieu();
                     return;
