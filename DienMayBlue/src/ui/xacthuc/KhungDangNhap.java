@@ -176,10 +176,10 @@ public class KhungDangNhap extends JFrame {
         lblHoTro.setForeground(HangSoGiaoDien.MUTED_LIGHT);
         lblHoTro.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblHoTro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        pnlBieuMau.add(lblHoTro);
-        pnlBieuMau.add(Box.createVerticalStrut(22));
-        pnlBieuMau.add(taoBangTaiKhoanMau());
-        pnlBieuMau.add(Box.createVerticalGlue());
+        // pnlBieuMau.add(lblHoTro);
+        // pnlBieuMau.add(Box.createVerticalStrut(22));
+        // pnlBieuMau.add(taoBangTaiKhoanMau());
+        // pnlBieuMau.add(Box.createVerticalGlue());
         JPanel pnlVung = new JPanel(new GridBagLayout());
         pnlVung.setBackground(Color.WHITE);
         pnlVung.setBorder(new EmptyBorder(24, 24, 24, 24));
