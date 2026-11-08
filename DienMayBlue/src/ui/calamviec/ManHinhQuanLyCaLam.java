@@ -1,4 +1,4 @@
-	package ui.calamviec;
+package ui.calamviec;
 import ui.dungchung.DinhDangHienThi;
 import java.awt.*;
 import java.time.LocalDate;
@@ -23,7 +23,7 @@ public class ManHinhQuanLyCaLam extends ManHinhCoSo {
     private final DefaultTableModel moHinh = TaoGiaoDien.moHinhChiDoc(new Object[] {
         "Mã ca", "Ngày", "Loại ca", "Thời gian", "Mã NV", "Nhân viên", "Loại nhân viên", "Người phân công", "Trạng thái"
     });
-    private final JTable bang = TaoGiaoDien.bang(moHinh);
+    private final JTable tblPhanCa = TaoGiaoDien.bang(moHinh);
     public ManHinhQuanLyCaLam() {
         super("Phân ca làm việc", "Phân công hoặc thay nhân viên theo ngày cho các loại nhân viên được cấu hình cho phép phân ca.");
         txtNgay.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
@@ -35,18 +35,18 @@ public class ManHinhQuanLyCaLam extends ManHinhCoSo {
         thaoTac.add(btnThay);
         thaoTac.add(btnHuy);
         thaoTac.add(btnLamMoi);
-        JPanel khung = new JPanel(new BorderLayout(0, 12));
-        khung.setOpaque(false);
-        khung.add(taoKhungTongHop(), BorderLayout.NORTH);
-        JPanel trungTam = new JPanel(new BorderLayout(0, 10));
-        trungTam.setOpaque(false);
-        trungTam.add(TaoGiaoDien.thanhCongCu(new JLabel("Ngày (dd/MM/yyyy)"), txtNgay, new JLabel("Loại ca"), cmbLoaiCa, new JLabel("Loại nhân viên"), cmbLoaiNhanVien), BorderLayout.NORTH);
-        BangPhanTrang cuon = TaoGiaoDien.bangPhanTrang(bang);
-        bang.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JPanel pnlKhung = new JPanel(new BorderLayout(0, 12));
+        pnlKhung.setOpaque(false);
+        pnlKhung.add(taoKhungTongHop(), BorderLayout.NORTH);
+        JPanel pnlTrungTam = new JPanel(new BorderLayout(0, 10));
+        pnlTrungTam.setOpaque(false);
+        pnlTrungTam.add(TaoGiaoDien.thanhCongCu(new JLabel("Ngày (dd/MM/yyyy)"), txtNgay, new JLabel("Loại ca"), cmbLoaiCa, new JLabel("Loại nhân viên"), cmbLoaiNhanVien), BorderLayout.NORTH);
+        BangPhanTrang pnlCuon = TaoGiaoDien.bangPhanTrang(tblPhanCa);
+        tblPhanCa.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         datDoRongCot();
-        trungTam.add(cuon, BorderLayout.CENTER);
-        khung.add(trungTam, BorderLayout.CENTER);
-        noiDung.add(khung, BorderLayout.CENTER);
+        pnlTrungTam.add(pnlCuon, BorderLayout.CENTER);
+        pnlKhung.add(pnlTrungTam, BorderLayout.CENTER);
+        noiDung.add(pnlKhung, BorderLayout.CENTER);
         txtNgay.addActionListener(e -> lamMoiDuLieu());
         cmbLoaiCa.addActionListener(e -> lamMoiDuLieu());
         cmbLoaiNhanVien.addActionListener(e -> lamMoiDuLieu());
@@ -56,37 +56,37 @@ public class ManHinhQuanLyCaLam extends ManHinhCoSo {
         btnLamMoi.addActionListener(e -> lamMoiDuLieu());
     }
     private JPanel taoKhungTongHop() {
-        JPanel p = new JPanel(new GridLayout(1, 4, 10, 0));
-        p.setOpaque(false);
-        p.add(taoTheTongHop("Tổng phân công", lblTongPhanCong));
-        p.add(taoTheTongHop("Ca sáng", lblSang));
-        p.add(taoTheTongHop("Ca chiều", lblChieu));
-        p.add(taoTheTongHop("Ca tối", lblToi));
-        return p;
+        JPanel pnlTongHop = new JPanel(new GridLayout(1, 4, 10, 0));
+        pnlTongHop.setOpaque(false);
+        pnlTongHop.add(taoTheTongHop("Tổng phân công", lblTongPhanCong));
+        pnlTongHop.add(taoTheTongHop("Ca sáng", lblSang));
+        pnlTongHop.add(taoTheTongHop("Ca chiều", lblChieu));
+        pnlTongHop.add(taoTheTongHop("Ca tối", lblToi));
+        return pnlTongHop;
     }
-    private JPanel taoTheTongHop(String tieuDe, JLabel giaTri) {
-        KhungBoGoc p = new KhungBoGoc(12, Color.WHITE);
-        p.setLayout(new BorderLayout(0, 6));
-        p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(12, 14, 12, 14)));
-        JLabel t = new JLabel(tieuDe);
-        t.setFont(HangSoGiaoDien.MEDIUM);
-        t.setForeground(HangSoGiaoDien.MUTED);
-        p.add(t, BorderLayout.NORTH);
-        p.add(giaTri, BorderLayout.CENTER);
-        return p;
+    private JPanel taoTheTongHop(String tieuDe, JLabel lblGiaTri) {
+        KhungBoGoc pnlThe = new KhungBoGoc(12, Color.WHITE);
+        pnlThe.setLayout(new BorderLayout(0, 6));
+        pnlThe.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(HangSoGiaoDien.BORDER), BorderFactory.createEmptyBorder(12, 14, 12, 14)));
+        JLabel lblTieuDe = new JLabel(tieuDe);
+        lblTieuDe.setFont(HangSoGiaoDien.MEDIUM);
+        lblTieuDe.setForeground(HangSoGiaoDien.MUTED);
+        pnlThe.add(lblTieuDe, BorderLayout.NORTH);
+        pnlThe.add(lblGiaTri, BorderLayout.CENTER);
+        return pnlThe;
     }
     private static JLabel taoGiaTriTongHop(String vanBan) {
-        JLabel l = new JLabel(vanBan);
-        l.setFont(HangSoGiaoDien.phongChu(Font.BOLD, 24));
-        l.setForeground(HangSoGiaoDien.TEXT);
-        return l;
+        JLabel lblGiaTri = new JLabel(vanBan);
+        lblGiaTri.setFont(HangSoGiaoDien.phongChu(Font.BOLD, 24));
+        lblGiaTri.setForeground(HangSoGiaoDien.TEXT);
+        return lblGiaTri;
     }
     private void datDoRongCot() {
         int[] rong = {
             80, 100, 90, 125, 80, 180, 145, 120, 110
         };
-        for (int i = 0; i < rong.length && i < bang.getColumnCount(); i++) {
-            bang.getColumnModel().getColumn(i).setPreferredWidth(rong[i]);
+        for (int i = 0; i < rong.length && i < tblPhanCa.getColumnCount(); i++) {
+            tblPhanCa.getColumnModel().getColumn(i).setPreferredWidth(rong[i]);
         }
     }
     @Override
@@ -129,38 +129,38 @@ public class ManHinhQuanLyCaLam extends ManHinhCoSo {
             LocalDate ngay = LocalDate.parse(txtNgay.getText().trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             JTextField txtMaCa = TaoGiaoDien.oNhap(160);
             TaoGiaoDien.datGoiYMa(txtMaCa, dichVu.goiYMaCa());
-            JComboBox<String> cboLoaiNhanVien = TaoGiaoDien.oChon("Bán hàng", "CSKH");
-            JComboBox<String> cboNhanVien = TaoGiaoDien.oChon();
-            JComboBox<String> cboCa = TaoGiaoDien.oChon();
+            JComboBox<String> cmbLoaiNhanVienChon = TaoGiaoDien.oChon("Bán hàng", "CSKH");
+            JComboBox<String> cmbNhanVien = TaoGiaoDien.oChon();
+            JComboBox<String> cmbCa = TaoGiaoDien.oChon();
             List<NhanVien> nhanVienHopLe = dichVu.nhanVienCoThePhanCong();
             Runnable napNhanVien = () -> {
-                cboNhanVien.removeAllItems();
-                String loai = String.valueOf(cboLoaiNhanVien.getSelectedItem());
+                cmbNhanVien.removeAllItems();
+                String loai = String.valueOf(cmbLoaiNhanVienChon.getSelectedItem());
                 for (NhanVien nv : nhanVienHopLe) {
-                    if (loai.equals(nv.getPhongBan())) cboNhanVien.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen());
+                    if (loai.equals(nv.getPhongBan())) cmbNhanVien.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen());
                 }
             };
-            cboLoaiNhanVien.addActionListener(e -> napNhanVien.run());
+            cmbLoaiNhanVienChon.addActionListener(e -> napNhanVien.run());
             napNhanVien.run();
             for (CaLamViec ca : dichVu.caDangHoatDong()) {
-                cboCa.addItem(ca.getMaCa() + " - " + ca.getTenCa() + " (" + ca.getGioBatDau() + " - " + ca.getGioKetThuc() + ")");
+                cmbCa.addItem(ca.getMaCa() + " - " + ca.getTenCa() + " (" + ca.getGioBatDau() + " - " + ca.getGioKetThuc() + ")");
             }
-            if (cboCa.getItemCount() == 0) {
+            if (cmbCa.getItemCount() == 0) {
                 thongBao("Không có ca làm việc hợp lệ để phân công.");
                 return;
             }
             JTextField txtNgayChiDoc = TaoGiaoDien.oNhap(160);
             TaoGiaoDien.datChiDoc(txtNgayChiDoc, ngay.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-            JPanel bieuMau = TaoGiaoDien.bieuMauHaiCot(
+            JPanel pnlBieuMau = TaoGiaoDien.bieuMauHaiCot(
                 TaoGiaoDien.truongBieuMau("Mã ca", txtMaCa),
                 TaoGiaoDien.truongBieuMau("Ngày làm việc", txtNgayChiDoc),
-                TaoGiaoDien.truongBieuMau("Loại nhân viên", cboLoaiNhanVien),
-                TaoGiaoDien.truongBieuMau("Nhân viên", cboNhanVien),
-                TaoGiaoDien.truongBieuMau("Ca làm việc", cboCa));
-            if (!TienIchHopThoai.xacNhanBieuMau(this, bieuMau, "Phân ca làm việc", "Lưu phân ca")) return;
-            if (cboNhanVien.getSelectedItem() == null) throw new IllegalArgumentException("Không có nhân viên phù hợp với loại đã chọn.");
-            String dongNhanVien = String.valueOf(cboNhanVien.getSelectedItem());
-            String dongCa = String.valueOf(cboCa.getSelectedItem());
+                TaoGiaoDien.truongBieuMau("Loại nhân viên", cmbLoaiNhanVienChon),
+                TaoGiaoDien.truongBieuMau("Nhân viên", cmbNhanVien),
+                TaoGiaoDien.truongBieuMau("Ca làm việc", cmbCa));
+            if (!TienIchHopThoai.xacNhanBieuMau(this, pnlBieuMau, "Phân ca làm việc", "Lưu phân ca")) return;
+            if (cmbNhanVien.getSelectedItem() == null) throw new IllegalArgumentException("Không có nhân viên phù hợp với loại đã chọn.");
+            String dongNhanVien = String.valueOf(cmbNhanVien.getSelectedItem());
+            String dongCa = String.valueOf(cmbCa.getSelectedItem());
             String maNhanVien = dongNhanVien.substring(0, dongNhanVien.indexOf(" - "));
             String maMauCa = dongCa.substring(0, dongCa.indexOf(" - "));
             int maLoaiCa = "MORNING".equals(maMauCa) ? 1 : "AFTERNOON".equals(maMauCa) ? 2 : 3;
@@ -171,30 +171,30 @@ public class ManHinhQuanLyCaLam extends ManHinhCoSo {
         }
     }
     private void thayNhanVien() {
-        int dongChon = bang.getSelectedRow();
+        int dongChon = tblPhanCa.getSelectedRow();
         if (dongChon < 0) { thongBao("Hãy chọn phân ca cần thay nhân viên."); return; }
-        int dongThat = bang.convertRowIndexToModel(dongChon);
+        int dongThat = tblPhanCa.convertRowIndexToModel(dongChon);
         String maCa = String.valueOf(moHinh.getValueAt(dongThat, 0));
         String maPhanCong = maCa;
         try {
-            JComboBox<String> cbo = TaoGiaoDien.oChon();
+            JComboBox<String> cmbNhanVienThay = TaoGiaoDien.oChon();
             String maHienTai = String.valueOf(moHinh.getValueAt(dongThat, 4));
-            for (NhanVien nv : dichVu.nhanVienCoThePhanCong()) if (!maHienTai.equals(nv.getMaNhanVien())) cbo.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen());
-            if (cbo.getItemCount() == 0) { thongBao("Không có nhân viên phù hợp để thay thế."); return; }
-            JPanel p = TaoGiaoDien.bieuMauHaiCot(TaoGiaoDien.truongBieuMau("Phân ca", new JLabel(maCa)), TaoGiaoDien.truongBieuMau("Nhân viên thay thế", cbo));
-            if (!TienIchHopThoai.xacNhanBieuMau(this, p, "Thay nhân viên trong ca", "Xác nhận thay")) return;
-            String dong = String.valueOf(cbo.getSelectedItem());
+            for (NhanVien nv : dichVu.nhanVienCoThePhanCong()) if (!maHienTai.equals(nv.getMaNhanVien())) cmbNhanVienThay.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen());
+            if (cmbNhanVienThay.getItemCount() == 0) { thongBao("Không có nhân viên phù hợp để thay thế."); return; }
+            JPanel pnlBieuMau = TaoGiaoDien.bieuMauHaiCot(TaoGiaoDien.truongBieuMau("Phân ca", new JLabel(maCa)), TaoGiaoDien.truongBieuMau("Nhân viên thay thế", cmbNhanVienThay));
+            if (!TienIchHopThoai.xacNhanBieuMau(this, pnlBieuMau, "Thay nhân viên trong ca", "Xác nhận thay")) return;
+            String dong = String.valueOf(cmbNhanVienThay.getSelectedItem());
             dichVu.thayNhanVienPhanCa(maPhanCong, dong.substring(0, dong.indexOf(" - ")));
             lamMoiDuLieu();
         } catch (Exception ex) { hienLoi(ex); }
     }
     private void huyPhanCa() {
-        int dongChon = bang.getSelectedRow();
+        int dongChon = tblPhanCa.getSelectedRow();
         if (dongChon < 0) {
             thongBao("Hãy chọn phân ca cần hủy.");
             return;
         }
-        int dongThat = bang.convertRowIndexToModel(dongChon);
+        int dongThat = tblPhanCa.convertRowIndexToModel(dongChon);
         String maCa = String.valueOf(moHinh.getValueAt(dongThat, 0));
         if (!maCa.matches("CA\\d{3}")) {
             thongBao("Mã ca không đúng định dạng CA001, CA002, ...");
